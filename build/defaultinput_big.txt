@@ -1,0 +1,34 @@
+/Default input file for parreml.
+/Comment lines are started with a 'slash', /
+/The order of the parameters is not important, but some are mandatory.
+/filenames can start with a slash to include absolute paths.
+
+/Dimension of dense submatrix D (mandatory)
+#DimensionD
+1000
+
+/Dimension of sparse sublatrix A (mandatory)
+#DimensionA
+10000
+
+/Filename of the dense matrix file (D) (mandatory in binary format)
+#DenseFileD
+/users/verbof/simple_sparsedense/matrix/Drandsparse_1000_1000.bin
+
+/Filename of the sparse matrix file (A) (mandatory in csr format)
+#SparseFileA
+/users/verbof/simple_sparsedense/matrix/Arandsparse_10000_10000.csr
+
+/Filename of the sparse matrix file (B) (csr, mandatory) 
+#SparseFileB
+/users/verbof/simple_sparsedense/matrix/Brandsparse_10000_1000.csr
+
+/size of the blocks in which the matrix is distributed (optional, default=64)
+#BlockSize
+64
+
+/Activate (1) or deactivate (0) the ParDiSo check on sparse matrices
+#PardisoCheck
+1
+
+
