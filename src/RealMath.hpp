@@ -44,6 +44,7 @@ void makeOnes(int m, int n, double value, CSRdouble& E);
 void genDiagonalV(int n, double* value, double* diag);
 void genDiagonalD(int n, double d, double* diag);
 void genTriDiag(int n, double* tri);
+void shiftIndices(CSRdouble& A, int value);
 void gen3DLaplace(int nx, int ny, int nz, double* lap);
 void fillSymmetric(CSRdouble* pmatrix);
 void norm(int n, double* x, double* y);

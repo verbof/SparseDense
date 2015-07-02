@@ -12,19 +12,19 @@ extern "C" {
 }
 
 
-void generate_BD(double* Dmat, CSRdouble& BT_i, CSRdouble& B_j)
+void genRandDenseSPD(int n, double* A);
+
+void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i, double* B_j, int* size_BT_i, int* size_B_j)
 {
+
+    int s_BT_i = blocksize * Drows;
+    int s_B_j  = blocksize * Dcols;
 
     if (position[0] == position[1])
     {
         genZeros(Drows*blocksize, Dcols*blocksize, Dmat);
         genDiagonalD(Dcols*blocksize, (double)Ddim, Dmat);
     }
-
-
-    int d_BT_i = blocksize*Drows;
-    int d_B_j  = blocksize*Dcols;
-
 
     if (position[0] == dims[0]-1) // the processor belongs to the last row of the grid...
     {
@@ -34,7 +34,7 @@ void generate_BD(double* Dmat, CSRdouble& BT_i, CSRdouble& B_j)
             exceeding_rows += blocksize * ceil((Dblocks-k)/(double)dims[0]);  // I compute the number of rows stored by all the processors belonging to this row.
 
         exceeding_rows -= Ddim;             // I compute the number of rows exceeding the real number of rows of B.
-        d_BT_i         -= exceeding_rows;   // I take away the exceeding number of rows from the standard number of rows-per-process (i.e., blocksize*Drows).
+        s_BT_i         -= exceeding_rows;   // I take away the exceeding number of rows from the standard number of rows-per-process (i.e., blocksize*Drows).
     }
     
     if (position[1] == dims[1]-1)
@@ -45,23 +45,25 @@ void generate_BD(double* Dmat, CSRdouble& BT_i, CSRdouble& B_j)
             exceeding_cols += blocksize * ceil((Dblocks-k)/(double)dims[1]);
 
         exceeding_cols -= Ddim;
-        d_B_j          -= exceeding_cols;
+        s_B_j          -= exceeding_cols;
     }
 
-    double* b_j  = new double[Adim*d_B_j];
-    double* bt_i = new double[d_BT_i*Adim];
+    double* denseB_j  = new double[Adim*s_B_j];
+    double* denseBT_i = new double[s_BT_i*Adim];
 
-    genOnes(Adim,   d_B_j, 0.0, b_j);
-    genOnes(d_BT_i, Adim,  0.0, bt_i);
+    genOnes(Adim,   s_B_j, 1e-15, denseB_j);
+    genOnes(s_BT_i, Adim,  1e-15, denseBT_i);
 
-    //for (int k = 0; k < Adim*d_B_j; k++) cout << b_j[k] << "\t";
+    *size_BT_i = s_BT_i;
+    *size_B_j  = s_B_j;
 
-    dense2CSR(b_j,  Adim,   d_B_j, B_j);
-    dense2CSR(bt_i, d_BT_i, Adim,  BT_i);
+    //for (int k = 0; k < Adim*s_B_j; k++) cout << b_j[k] << "\t";
+
+    //dense2CSR(b_j,  Adim,   s_B_j, B_j);
+    //dense2CSR(bt_i, s_BT_i, Adim,  BT_i);
 
 
-    delete[] b_j;
-    delete[] bt_i;
+    printf("Process %d just generated B & D! \n", iam);
 
 }
 

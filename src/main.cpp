@@ -10,6 +10,7 @@
 #include "timing.hpp"
 #include <cassert>
 
+
 extern "C" {
     int MPI_Init(int *, char ***);
     int MPI_Finalize(void);
@@ -45,13 +46,14 @@ int Bassparse_bool;
 ParDiSO pardiso_var(-2,0);
 
 
-double totaltime = 0.0;
-double schurtime = 0.0;
-double gensctime = 0.0;
-double facsctime = 0.0;
-double invsctime = 0.0;
-double gathrtime = 0.0;
-double invrAtime = 0.0;
+double totaltime = 0.0;     // Total execution time
+double cresctime = 0.0;     // Schur-complement creation
+double facsctime = 0.0;     // Schur-complement factorization
+double invsctime = 0.0;     // Schur-complement inversion
+double gathrtime = 0.0;     // Last operations
+double invrAtime = 0.0;     // Inversion of A
+double dotprtime = 0.0;     // Dot Product
+double sndrctime = 0.0;     // Send/Receive
 timing watch;
 
 
@@ -59,7 +61,11 @@ int main(int argc, char **argv) {
     int info, i, j, pcol;
     double *D, *AB_sol, *InvD_T_Block, *XSrow;
     int *DESCD, *DESCAB_sol, *DESCXSROW;
-    CSRdouble BT_i, B_j;
+    //CSRdouble BT_i, B_j;
+    double* BT_i;
+    double* B_j;
+    int s_BT_i = 0;
+    int s_B_j  = 0;              // size of BT_i (#rows) and B_j (#cols)
     CSRdouble Asparse, Btsparse;
 
     if (argc != 2)
@@ -68,6 +74,9 @@ int main(int argc, char **argv) {
         cout << "Usage: " << argv[0] << " inputfile" << endl;
         exit(-1);
     }
+
+
+
 
     //Initialise MPI and some MPI-variables
     info = MPI_Init ( &argc, &argv );
@@ -114,7 +123,6 @@ int main(int argc, char **argv) {
 
     //Initialisation of the BLACS process grid, which is referenced as ICTXT2D
     blacs_gridinit_ ( &ICTXT2D,"R",dims, dims+1 );
-
 
 
 
@@ -188,33 +196,36 @@ int main(int argc, char **argv) {
 
         blacs_barrier_ ( &ICTXT2D,"ALL" ); //added
 
-        /********************** TIMING **********************/
-        if (iam == 0)
-            watch.tick(totaltime);
-
-
         //read_in_BD ( DESCD,D, BT_i, B_j, Btsparse ) ;
         if (iam == 0)
             cout << "Generating A, B and D... \n" << endl;
-        generate_BD(D, BT_i, B_j);
+        generate_BD(D, BT_i, B_j, &s_BT_i, &s_B_j);
 
+        cout << "- B, D generated." << endl;
 
         //Now every process has to read in the sparse matrix A
 
-        makeDiagonalPerturbD(Adim, 1000.0, 1e-15, Asparse);
-        //make3DLaplace(100, 100, 100, Asparse);
-        
+        //makeDiagonalPerturbD(Adim, 1000.0, 1e-10, Asparse); cout << "A is a pert. diag." << endl;
+        //makeRandCSRUpper(Adim, 0.001, Asparse);
+        //cout << "nnz(A) = " << Asparse.nonzeros << endl;
         //Asparse.loadFromFileSym("/users/drosos/simple/matrices/NornePrimaryJacobian.csr");
+
+        make3DLaplace(10, 10, 10, Asparse); cout << "A is Laplacian" << endl;
+        //Asparse.reduceSymmetric();
+        shiftIndices(Asparse, -1);
+        cout << "- A generated." << endl;
         Asparse.matrixType = SYMMETRIC;
         
         // if (iam == 0) Asparse.writeToFile("A_debug.csr");
 
-	assert(Asparse.nrows == Adim);
-	assert(Asparse.ncols == Adim);
+        assert(Asparse.nrows == Adim);
+        assert(Asparse.ncols == Adim);
 
-        blacs_barrier_ ( &ICTXT2D,"ALL" );
+        //printsparseC_bool = true;
+        if(printsparseC_bool) {
 
-	if(printsparseC_bool) {
+            makeOnes(Adim, Ddim, 1e-15, Btsparse);
+
             CSRdouble Dmat, Dblock, Csparse;
             Dblock.nrows=Dblocks * blocksize;
             Dblock.ncols=Dblocks * blocksize;
@@ -244,7 +255,7 @@ int main(int argc, char **argv) {
                 MPI_Send ( & ( Dmat.pCols[0] ),Dmat.nonzeros, MPI_INT,0,iam+2*size,MPI_COMM_WORLD );
                 MPI_Send ( & ( Dmat.pData[0] ),Dmat.nonzeros, MPI_DOUBLE,0,iam+3*size,MPI_COMM_WORLD );
                 Dmat.clear();
-		Btsparse.clear();
+                Btsparse.clear();
             }
             else {
                 for ( i=1; i<size; ++i ) {
@@ -266,7 +277,7 @@ int main(int argc, char **argv) {
                         /*MPI_Get_count(&status, MPI_DOUBLE, &count);
                         printf("Process 0 received %d elements of process %d\n",count,i);*/
                         Dmat.addBCSR ( Dblock );
-			Dblock.clear();
+                        Dblock.clear();
                     }
                 }
                 //Dmat.writeToFile("D_sparse.csr");
@@ -274,9 +285,9 @@ int main(int argc, char **argv) {
                 Dmat.reduceSymmetric();
 		
                 Btsparse.transposeIt(1);
-		Dmat.nrows=Ddim;
-		Dmat.ncols=Ddim;
-		Dmat.pRows=(int *) realloc(Dmat.pRows,(Ddim+1) * sizeof(int));
+                Dmat.nrows=Ddim;
+                Dmat.ncols=Ddim;
+                Dmat.pRows=(int *) realloc(Dmat.pRows,(Ddim+1) * sizeof(int));
                 create2x2SymBlockMatrix(Asparse,Btsparse, Dmat, Csparse);
                 Btsparse.clear();
                 Dmat.clear();
@@ -290,15 +301,12 @@ int main(int argc, char **argv) {
         
         blacs_barrier_(&ICTXT2D,"A");
 
-
-        
         /********************** TIMING **********************/
         if (iam == 0)
-            watch.tick(schurtime);
+            watch.tick(totaltime);
 
         if (iam == 0)
-            watch.tick(gensctime);
-        
+            watch.tick(cresctime);
 
         //AB_sol will contain the solution of A*X=B, distributed across the process rows. Processes in the same process row possess the same part of AB_sol
         DESCAB_sol= ( int* ) malloc ( DLEN_ * sizeof ( int ) );
@@ -329,9 +337,7 @@ int main(int argc, char **argv) {
          B_j.writeToFile(B_j_debugFile);
         */
 
-
-        make_Sij_parallel_denseB ( Asparse, BT_i, B_j, D, lld_D, AB_sol );
-
+        make_Sij_denseB ( Asparse, BT_i, B_j, s_BT_i, s_B_j, D, lld_D, AB_sol );
 
         /*
         char * AB_sol_debugFile = new char[100];
@@ -348,25 +354,28 @@ int main(int argc, char **argv) {
         */
 
 
-	if (iam !=0)
+        if (iam !=0)
         {
-	  Asparse.clear();
-          pardiso_var.clear();
+            Asparse.clear();
+            pardiso_var.clear();
         }
 
-	BT_i.clear();
-	B_j.clear();
+        //BT_i.clear();
+        //B_j.clear();
+
+        delete[] BT_i;
+        delete[] B_j;
+
+
 
         blacs_barrier_ ( &ICTXT2D,"ALL" );
         
         /********************** TIMING **********************/
         if (iam == 0)
-            watch.tack(schurtime);
+            watch.tack(cresctime);
 
         if (iam == 0)
             watch.tick(facsctime);
-        if (iam == 0)
-            watch.tick(invsctime);
 
         //The Schur complement is factorised (by ScaLAPACK)
         pdpotrf_ ( "U",&Ddim,D,&i_one,&i_one,DESCD,&info );
@@ -380,6 +389,9 @@ int main(int argc, char **argv) {
         /********************** TIMING **********************/
         if (iam == 0)
             watch.tack(facsctime);
+
+        if (iam == 0)
+            watch.tick(invsctime);
 
         //The Schur complement is inverteded (by ScaLAPACK)
         pdpotri_ ( "U",&Ddim,D,&i_one,&i_one,DESCD,&info );
@@ -399,6 +411,11 @@ int main(int argc, char **argv) {
 
 
         InvD_T_Block = ( double* ) calloc ( Dblocks * blocksize + Adim ,sizeof ( double ) );
+
+        blacs_barrier_(&ICTXT2D,"A");
+        /********************** TIMING **********************/
+        if (iam == 0)
+            watch.tick(sndrctime);
 
         //Diagonal elements of the (1,1) block of C^-1 are still distributed and here they are gathered in InvD_T_Block in the root process.
         if(*position == pcol) {
@@ -420,14 +437,22 @@ int main(int argc, char **argv) {
             }
         }
         
-        if(position != NULL){
-	  free(position);
-	  position=NULL;
-	}
-	if(dims != NULL){
-	  free(dims);
-	  dims=NULL;
-	}
+        blacs_barrier_(&ICTXT2D,"A");
+        /********************** TIMING **********************/
+        if (iam == 0)
+            watch.tack(sndrctime);
+
+        if(position != NULL)
+        {
+            free(position);
+            position=NULL;
+        }
+
+        if(dims != NULL)
+        {
+            free(dims);
+            dims=NULL;
+        }
 
         //Only the root process performs a selected inversion of A.
         if (iam==0) {
@@ -489,6 +514,14 @@ int main(int argc, char **argv) {
         if (iam == 0)
             cout << "Calculating diagonal elements of the first block of the inverse... \n" << endl;
 
+
+
+        blacs_barrier_(&ICTXT2D,"A");
+        /********************** TIMING **********************/
+        if (iam == 0)
+            watch.tick(dotprtime);
+
+
         //Calculating diagonal elements 1 by 1 of the (0,0)-block of C^-1.
         for (i=1; i<=Adim; ++i) 
         {
@@ -498,6 +531,9 @@ int main(int argc, char **argv) {
 
 
         blacs_barrier_(&ICTXT2D,"A");
+        /********************** TIMING **********************/
+        if (iam == 0)
+            watch.tack(dotprtime);
 
 
 	
@@ -572,40 +608,56 @@ int main(int argc, char **argv) {
         
         if (InvD_T_Block !=NULL)
         {
-	  free(InvD_T_Block);
-	  InvD_T_Block=NULL;
-	}
+	        free(InvD_T_Block);
+	        InvD_T_Block=NULL;
+	    }
 
 
         if (iam == 0)
         {
+
+
+            // Conversion milliseconds -> seconds
+            cresctime /= 1000.0;
+            facsctime /= 1000.0;
+            invsctime /= 1000.0;
+            gathrtime /= 1000.0;
+            invrAtime /= 1000.0;
+            totaltime /= 1000.0;
+
+
+
             cout << "********************************* TIME REPORT ********************************** \n" << endl;
-            cout << "SCHUR COMPLEMENT (CREATION+FACTORIZATION+INVERSION): " << schurtime / 1000.0 << " seconds" << endl;
-            cout << "                                           CREATION: " << schurtime / 1000.0 << " seconds" << endl;
-            cout << "                                      FACTORIZATION: " << schurtime / 1000.0 << " seconds" << endl;
-            cout << "                                          INVERSION: " << schurtime / 1000.0 << " seconds" << endl;
-            cout << "                                                                            " << endl;
-            cout << "         FINAL OPERATIONS (INVERSION OF A INCLUDED): " << gathrtime / 1000.0 << " seconds" << endl;
-            cout << "                                     INVERSION OF A: " << invrAtime / 1000.0 << " seconds" << endl;
-            cout << "                                         TOTAL TIME: " << totaltime / 1000.0 << " seconds" << endl;
+            cout << "                     SCHUR COMPLEMENT      BUILDING: " << cresctime << " seconds" << endl;
+            cout << "                     SCHUR COMPLEMENT FACTORIZATION: " << facsctime << " seconds" << endl;
+            cout << "                     SCHUR COMPLEMENT     INVERSION: " << invsctime << " seconds" << endl;
+            cout << "                                                                                " << endl;
+            cout << "         FINAL OPERATIONS (INVERSION OF A INCLUDED): " << gathrtime << " seconds" << endl;
+            cout << "                                     INVERSION OF A: " << invrAtime << " seconds" << endl;
+            cout << "                                         TOTAL TIME: " << totaltime << " seconds" << endl;
             cout << "******************************************************************************** \n" << endl;
 
+            /* 
+             * double totaltime = 0.0;     // Total execution time
+             * double cresctime = 0.0;     // Schur-complement (total)
+             * double facsctime = 0.0;     // Schur-complement factorization
+             * double invsctime = 0.0;     // Schur-complement inversion
+             * double gathrtime = 0.0;     // Last operationsdouble invrAtime = 0.0;     // Inversion of A
+             * */
 
             char* timingFile = new char[50];
-            sprintf(timingFile, "timing_sequential.txt");
+            sprintf(timingFile, "weak_tests.csv");
 
             std::fstream timeF;
             timeF.open(timingFile, std::fstream::out | std::fstream::app);
             timeF.setf(ios::scientific, ios::floatfield);
 
-            timeF << "PROBLEM SIZE: " << Adim/1000 << "k + " << Ddim/1000 << "k" << endl;
-            timeF << "#PROCESSORS:  " << size << endl;
-            timeF << "\t SCHUR COMPLEMENT (BUILD+FACT.+INVERT): " << schurtime / 1000.0 << " seconds" << endl;
-            timeF << "\t INVERSION OF A + OTHER OPERATIONS):    " << gathrtime / 1000.0 << " seconds" << endl;
-            timeF << " \t INVERSION OF A:                        " << invrAtime / 1000.0 << " seconds" << endl;
-            timeF << "\t TOTAL TIME:                            " << totaltime / 1000.0 << " seconds" << endl;
-            timeF << "******** \n" << endl;
-            
+            //timeF << "PROBLEM SIZE: " << Adim/1000 << "k + " << Ddim/1000 << "k" << endl;
+            //timeF <<
+            //"#PROCS,SCHUR_BUILD,SCHUR_FACT,SCHUR_INV,INV(A),FINAL_OPS,
+            //SEND_RECV, DOT_PROD,TOTAL" << endl;
+            timeF << size << "," << cresctime << "," << facsctime << "," << invsctime << "," << invrAtime << "," << gathrtime << "," << sndrctime << "," << dotprtime << "," << totaltime << endl;
+
             timeF.close();
         }
 

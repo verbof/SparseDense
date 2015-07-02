@@ -47,6 +47,49 @@ int make_Sij_sparse_parallel(CSRdouble& A, CSRdouble& BT_i, CSRdouble& B_j, doub
     return 0;
 }
 
+int make_Sij_denseB(CSRdouble& A, double* BT_i, double* B_j, int d_BT_i, int d_B_j, double * T_ij, int lld_T, double * AB_sol_out) {
+
+    timing secs;
+    double MultTime  = 0.0;
+    double SchrTime  = 0.0;
+
+    //assert(A.nrows == BT_i.ncols);
+
+    if(iam==0)
+	  printf("Solving systems AX_j = B_j on all processes\n");
+
+    solveSystem(A,      AB_sol_out, B_j,    -2, d_B_j); // System: A * AB_sol_out = B_j;
+    //          A   *   x       =   b,    type, #RHS
+
+    if(B_j != NULL) 
+    {
+        free(B_j);
+        B_j = NULL;
+    }
+
+    //printf("Processor %d finished solving system AX=B\n",iam);
+
+
+    secs.tick(MultTime);
+    //dgemm_("N", "N", &(BT_i.nrows), &(B_j.ncols), &(BT_i.ncols), &d_negone, BT_i, &(BT_i.nrows),
+    //       AB_sol_out, &(A.nrows), &d_one, T_ij, &lld_T);
+    dgemm_("N", "N", &d_BT_i, &d_B_j, &A.nrows, &d_negone, BT_i, &d_BT_i,
+            AB_sol_out, &A.nrows, &d_one, T_ij, &lld_T); 
+
+    secs.tack(MultTime);
+
+    cout << " \n\n *** Time needed for 'calculateSchurComplement': " << SchrTime * 0.001 << " seconds. *** \n" << endl;
+    
+    if(iam==0)
+      cout << "Time for multiplying BT_i and Y_j: " << MultTime * 0.001 << " sec" << endl;
+
+    if(BT_i != NULL) {
+        free(BT_i);
+        BT_i = NULL;
+    }
+
+    return 0;
+}
 /**
  * @brief BT_i and B_j are converted to dense matrices in each process to solve the sparse system AX=B_j and afterwards do BT_i * X. X is stored as a dense matrix in AB_sol
  *

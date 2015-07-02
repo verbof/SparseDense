@@ -832,8 +832,8 @@ void makeRhsCSRdoubleMatrix(int number_of_rhs, int n, double* B, CSRdouble& Bmat
     vector<int> vcols;
     vector<double> vdata;
 
-    int*    prows = new int[n+1];
-    prows[0]      = 0;
+    int* prows = new int[n+1];
+    prows[0]   = 0;
 
     for (int i = 0; i < n; i++)
     {
@@ -880,7 +880,7 @@ void makeIdentity(int n, CSRdouble& I)
     {
         prows[i+1]  = prows[i] + 1;
         pcols[i]    = i;
-        pdata[i]    = -1.0;
+        pdata[i]    = 1.0;
     }
 
     I.make(n, n, n, prows, pcols, pdata);
@@ -1039,6 +1039,23 @@ void genTriDiag(int n, double* tri)
 
 }
 
+
+
+
+void shiftIndices(CSRdouble& A, int value)
+{
+  int i;
+  for (i = 0; i <= A.nrows; i++)
+  {
+    A.pRows[i] += value;
+  }
+
+  for (i = 0; i < A.nonzeros; i++)
+  {
+    A.pCols[i] += value;
+  }    
+}
+
 void make3DLaplace(int nx, int ny, int nz, CSRdouble& L)
 {
 
@@ -1053,7 +1070,9 @@ void make3DLaplace(int nx, int ny, int nz, CSRdouble& L)
 
 
    nnodes = nx*ny*nz;
-   mesh = (int*)malloc(nnodes*sizeof(int));
+   cout << "Generating a " << nnodes << "-by-" << nnodes << " Laplacian matrix..." << endl;
+
+   mesh = (int*) calloc(nnodes, sizeof(int));
 
    for (i = 0; i<nnodes; i++) mesh[i]=i+1;
    
@@ -1079,8 +1098,8 @@ void make3DLaplace(int nx, int ny, int nz, CSRdouble& L)
    //printf("%d  %d\n", nnodes, nnz);
    nnz_full = nnz;
    
-   colptr = (int*)malloc((nnodes+1)*sizeof(int));
-   rowind = (int*)malloc(nnz_full*sizeof(int));
+   colptr  = (int*)malloc((nnodes+1)*sizeof(int));
+   rowind  = (int*)malloc(nnz_full*sizeof(int));
    nzvals  = (double*)malloc(nnz_full*sizeof(double));
 
    colptr(1) = 1;
@@ -1173,6 +1192,8 @@ void make3DLaplace(int nx, int ny, int nz, CSRdouble& L)
    free(colptr); 
    free(rowind); 
    free(nzvals); 
+
+   cout << "- Done!" << endl;
 
 }
 

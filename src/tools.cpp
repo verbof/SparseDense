@@ -10,18 +10,18 @@
 
 
 
-void genRandDenseSPD(int n, double * A)
+void genRandDenseSPD(int n, double* A)
 {
     printf("- Generating a %d-by-%d dense, random SPD matrix... \n", n, n);
 
     std::srand(time(NULL));
 
 
-    cout << "Matrix generation completed by ";
+    //cout << "Matrix generation completed by ";
 
     for(int i = 0; i < n; i++)
     {
-        cout << setw(3) << std::setfill('0') << i*100 / (n-1) << "%" << "\b\b\b\b";
+        //cout << setw(3) << std::setfill('0') << i*100 / (n-1) << "%" << "\b\b\b\b";
 
         for(int j = 0; j < n; j++)
         {
@@ -121,6 +121,7 @@ void makeRandCSRUpper(int n, int densityPerRow, CSRdouble& A)
         vector<int> columns;                            // Column coordinates for the elements in this row.
         columns.push_back(i);                           // Add entry in the main diagonal;
 
+        cout << "nnzPerRow = " << nnzPerRow << " nnz: " << endl;
         for (int index = 1; index < nnzPerRow; index++) // RANDOM NUMBER OF NONZEROS PER ROW...
         {
             int p = -1;
@@ -128,12 +129,14 @@ void makeRandCSRUpper(int n, int densityPerRow, CSRdouble& A)
             do
             {
                 p = i + (std::rand() % (n-i));
-            
+
             } while (p < i || p > n-1);
-            
+
+            cout << p << " " << endl;
             columns.push_back(p);
         }
 
+        cout << "\n columns.size = " << columns.size() << endl;
         std::sort(columns.begin(), columns.end());
 
         std::vector<int>::iterator it;
@@ -141,6 +144,7 @@ void makeRandCSRUpper(int n, int densityPerRow, CSRdouble& A)
         
         columns.resize(std::distance(columns.begin(), it));
 
+        cout << columns.size() << endl;
 
         for (int j = 0; j < columns.size(); j++)
         {
@@ -166,6 +170,7 @@ void makeRandCSRUpper(int n, int densityPerRow, CSRdouble& A)
 
     int nonzeros = values.size();
     
+    cout << "Allocating " << nonzeros << "nnz's for A" << endl;
     A.allocate(n, n, nonzeros);
     
     int* ia   = new int[n+1];

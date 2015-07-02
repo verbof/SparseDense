@@ -45,10 +45,12 @@ extern "C"{
 
 void printdense ( int m, int n, double *mat, char *filename );
 int read_in_BD  ( int * DESCD, double * Dmat, CSRdouble& BT_i, CSRdouble& B_j, CSRdouble& Btsparse ) ;
-void generate_BD(double* Dmat, CSRdouble& BT_i, CSRdouble& B_j);
+//void generate_BD(double* Dmat, CSRdouble& BT_i, CSRdouble& B_j);
+void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i, double* B_j, int* size_BT_i, int* size_B_j);
 int read_input ( char* filename ) ;
 int make_Sij_sparse_parallel (CSRdouble& A, CSRdouble& BT_i, CSRdouble& B_j, double* T_ij, int lld_Tij );
 int make_Sij_parallel_denseB(CSRdouble& A, CSRdouble& BT_i, CSRdouble& B_j, double * T_ij, int lld_T, double* AB_sol) ;
+int make_Sij_denseB(CSRdouble& A, double* BT_i, double* B_j, int d_BT_i, int d_B_j, double * T_ij, int lld_T, double * AB_sol_out);
 void dense2CSR ( double *mat, int m, int n, CSRdouble& A );
 void dense2CSR_sub ( double *mat, int m, int n, int lld_mat, CSRdouble& A, int startrow, int startcol ) ;
 void CSR2dense ( CSRdouble& matrix, double* T_ij ) ;
@@ -57,6 +59,7 @@ void CSR2dense_lld ( CSRdouble& matrix,double *dense, int lld_dense ) ;
 void mult_colsA_colsC ( CSRdouble& A, double *B, int lld_B, int Acolstart, int Acolstop, int Ccolstart, int Ccolstop,
                         CSRdouble& C, bool trans );
 
+void makeRandCSRUpper(int n, int densityPerRow, CSRdouble& A);
 
 extern double d_one, d_zero, d_negone;
 extern int DLEN_, i_negone, i_zero, i_one; // some many used constants
