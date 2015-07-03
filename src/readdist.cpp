@@ -22,9 +22,11 @@ void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i,
 
     if (position[0] == position[1])
     {
-        genZeros(Drows*blocksize, Dcols*blocksize, Dmat);
+        genOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), Dmat);
         genDiagonalD(Dcols*blocksize, (double)Ddim, Dmat);
     }
+    else 
+      genOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), Dmat);
 
     /*if (position[0] == dims[0]-1) // the processor belongs to the last row of the grid...
     {
@@ -48,8 +50,8 @@ void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i,
         s_B_j          -= exceeding_cols;
     }*/
 
-    genOnes(Adim,   s_B_j, 1e-4, B_j);
-    genOnes(s_BT_i, Adim,  1e-4, BT_i);
+    genOnes(Adim,   s_B_j, (double) 1/Ddim, B_j);
+    genOnes(s_BT_i, Adim,  (double) 1/Ddim, BT_i);
 
     *size_BT_i = s_BT_i;
     *size_B_j  = s_B_j;

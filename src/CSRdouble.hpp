@@ -32,6 +32,8 @@ public:
 
     void  addBCSR ( CSRdouble& B );
     void  extendrows ( CSRdouble& B, int startrowB, int nrowsB );
+    void  changeRows ( int rows );
+    void  changeCols ( int cols ) ;
 
     void  residual ( double* r, double* x, double* b );
     void  multiply ( double* x, double* y );

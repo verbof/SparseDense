@@ -10,24 +10,20 @@
 
 
 
-void genRandDenseSPD(int n, double* A)
-{
-    printf("- Generating a %d-by-%d dense, random SPD matrix... \n", n, n);
+void genRandDenseSPD ( int n, double* A ) {
+    printf ( "- Generating a %d-by-%d dense, random SPD matrix... \n", n, n );
 
-    std::srand(time(NULL));
+    std::srand ( time ( NULL ) );
 
 
     //cout << "Matrix generation completed by ";
 
-    for(int i = 0; i < n; i++)
-    {
+    for ( int i = 0; i < n; i++ ) {
         //cout << setw(3) << std::setfill('0') << i*100 / (n-1) << "%" << "\b\b\b\b";
 
-        for(int j = 0; j < n; j++)
-        {
-            if(i < j)
-            {
-                double Aij = -std::rand() / (double) RAND_MAX;
+        for ( int j = 0; j < n; j++ ) {
+            if ( i < j ) {
+                double Aij = -std::rand() / ( double ) RAND_MAX;
 
                 A[i*n + j] = Aij;
                 A[j*n + i] = Aij;
@@ -36,52 +32,43 @@ void genRandDenseSPD(int n, double* A)
     }
     cout << endl;
 
-    for(int i = 0; i < n; i++)
-    {
+    for ( int i = 0; i < n; i++ ) {
         double Aii = 0.0;
 
-        for(int j = 0; j < n; j++)
-        {
-            if(j != i)
+        for ( int j = 0; j < n; j++ ) {
+            if ( j != i )
                 Aii -= A[i*n + j];
         }
 
         A[i*n + i] = n + Aii;
     }
 
-    printf("- Done! \n\n");
+    printf ( "- Done! \n\n" );
 
 }
 
 
-void printDenseDouble(const char* filename, ios::openmode mode, int m, int n, double* dense) 
-{
+void printDenseDouble ( const char* filename, ios::openmode mode, int m, int n, double* dense ) {
 
     cout << "\t---> Dumping matrix to file " << filename << " ... \n" << endl;
 
-    fstream fout(filename, ios::out | mode);
-    if (!fout.is_open())
-    {
+    fstream fout ( filename, ios::out | mode );
+    if ( !fout.is_open() ) {
         cout << "could not open file " << filename << " for output\n";
         return;
     }
 
-    if (mode == ios::binary)
-    {
-        fout.seekp(0);
-        fout.write((const char*)dense, sizeof(double)*m*n);
+    if ( mode == ios::binary ) {
+        fout.seekp ( 0 );
+        fout.write ( ( const char* ) dense, sizeof ( double ) *m*n );
         fout.close();
-    }
-    else
-    {
-        fout.setf(ios::scientific, ios::floatfield);
-        fout.precision(4);
+    } else {
+        fout.setf ( ios::scientific, ios::floatfield );
+        fout.precision ( 4 );
 
-    
-        for (int i = 0; i < m; i++)
-        {
-            for(int j = 0; j < n; j++)
-            {
+
+        for ( int i = 0; i < m; i++ ) {
+            for ( int j = 0; j < n; j++ ) {
                 fout << dense[i*n + j] << " ";
             }
             fout << "\n";
@@ -91,99 +78,93 @@ void printDenseDouble(const char* filename, ios::openmode mode, int m, int n, do
 }
 
 
-void makeRandCSRUpper(int n, int densityPerRow, CSRdouble& A)
-{
+void makeRandCSRUpper ( int n, int densityPerRow, CSRdouble& A ) {
 
-    printf("- Generating a %d-by-%d sparse, random matrix in CSR format... \n", n, n);
-    
+    printf ( "- Generating a %d-by-%d sparse, random matrix in CSR format... \n", n, n );
+
     vector<int> cols;
-    vector<int> rows(n+1, 0);
+    vector<int> rows ( n+1, 0 );
     vector<double> values;
 
 
-    if (densityPerRow < 0.0)
+    if ( densityPerRow < 0.0 )
         densityPerRow = 0.01;
 
-    if (densityPerRow > 1.0)
+    if ( densityPerRow > 1.0 )
         densityPerRow = 1.0;
 
-    std::srand(time(NULL));
+    std::srand ( time ( NULL ) );
 
     int nnzPerRow = 0;
 
-    for (int i = 0; i < n; i++)                         // FOR EACH ROW...
-    {
+    for ( int i = 0; i < n; i++ ) {                     // FOR EACH ROW...
 
-        nnzPerRow = densityPerRow * (n-i);
-        if (nnzPerRow < 1)
+        nnzPerRow = densityPerRow * ( n-i );
+        if ( nnzPerRow < 1 )
             nnzPerRow = 1;                              // This guarantees at least one nonzero in each row.
 
         vector<int> columns;                            // Column coordinates for the elements in this row.
-        columns.push_back(i);                           // Add entry in the main diagonal;
+        columns.push_back ( i );                        // Add entry in the main diagonal;
 
         cout << "nnzPerRow = " << nnzPerRow << " nnz: " << endl;
-        for (int index = 1; index < nnzPerRow; index++) // RANDOM NUMBER OF NONZEROS PER ROW...
-        {
+        for ( int index = 1; index < nnzPerRow; index++ ) { // RANDOM NUMBER OF NONZEROS PER ROW...
             int p = -1;
 
-            do
-            {
-                p = i + (std::rand() % (n-i));
+            do {
+                p = i + ( std::rand() % ( n-i ) );
 
-            } while (p < i || p > n-1);
+            } while ( p < i || p > n-1 );
 
             cout << p << " " << endl;
-            columns.push_back(p);
+            columns.push_back ( p );
         }
 
         cout << "\n columns.size = " << columns.size() << endl;
-        std::sort(columns.begin(), columns.end());
+        std::sort ( columns.begin(), columns.end() );
 
         std::vector<int>::iterator it;
-        it = std::unique(columns.begin(), columns.end());
-        
-        columns.resize(std::distance(columns.begin(), it));
+        it = std::unique ( columns.begin(), columns.end() );
+
+        columns.resize ( std::distance ( columns.begin(), it ) );
 
         cout << columns.size() << endl;
 
-        for (int j = 0; j < columns.size(); j++)
-        {
+        for ( int j = 0; j < columns.size(); j++ ) {
             double value = 0.0;
-            do
-            {
-                value = std::rand() / (double)RAND_MAX;
-            
-            } while (value == 0.0);
-            
-            if(j == 0)
+            do {
+                value = std::rand() / ( double ) RAND_MAX;
+
+            } while ( value == 0.0 );
+
+            if ( j == 0 )
                 value = 1.0 + n;    // Attempting to get POSITIVE DEFINITE matrix.
 
-            cols.push_back(columns[j]);
-            values.push_back(value);
+            cols.push_back ( columns[j] );
+            values.push_back ( value );
         }
 
         rows[i+1] = rows[i] + columns.size();
 
     }
     cout << endl;
-    
+
 
     int nonzeros = values.size();
-    
+
     cout << "Allocating " << nonzeros << "nnz's for A" << endl;
-    A.allocate(n, n, nonzeros);
-    
+    A.allocate ( n, n, nonzeros );
+
     int* ia   = new int[n+1];
     int* ja   = new int[nonzeros];
     double* a = new double[nonzeros];
 
-    std::copy(rows.begin(),   rows.end(),   ia);
-    std::copy(cols.begin(),   cols.end(),   ja);
-    std::copy(values.begin(), values.end(), a);
-    
-    A.make(n, n, nonzeros, ia, ja, a);
+    std::copy ( rows.begin(),   rows.end(),   ia );
+    std::copy ( cols.begin(),   cols.end(),   ja );
+    std::copy ( values.begin(), values.end(), a );
 
-    printf("- Done! \n\n");
+    A.make ( n, n, nonzeros, ia, ja, a );
+
+    printf ( "- Done! \n\n" );
 
 }
 
@@ -191,110 +172,102 @@ void makeRandCSRUpper(int n, int densityPerRow, CSRdouble& A)
 
 
 
-void makeRandCSR(int m, int n, int densityPerRow, CSRdouble& A)
-{
+void makeRandCSR ( int m, int n, int densityPerRow, CSRdouble& A ) {
 
-    printf("- Generating a %d-by-%d sparse, random matrix... \n", m, n);
-    
+    printf ( "- Generating a %d-by-%d sparse, random matrix... \n", m, n );
+
     vector<int> cols;
-    vector<int> rows(m+1, 0);
+    vector<int> rows ( m+1, 0 );
     vector<double> values;
- 
-    if (densityPerRow < 0.0)
+
+    if ( densityPerRow < 0.0 )
         densityPerRow = 0.01;
 
-    if (densityPerRow > 1.0)
+    if ( densityPerRow > 1.0 )
         densityPerRow = 1.0;
 
-    std::srand(time(NULL));
+    std::srand ( time ( NULL ) );
 
 
-    int nnzPerRow = densityPerRow * n;          
-    if (nnzPerRow < 1)
+    int nnzPerRow = densityPerRow * n;
+    if ( nnzPerRow < 1 )
         nnzPerRow = 1;                                  // This guarantees at least one nonzero in each row.
 
     // cout << "Matrix generation completed by ";
-    for (int i = 0; i < m; i++)                         // FOR EACH ROW...
-    {
+    for ( int i = 0; i < m; i++ ) {                     // FOR EACH ROW...
         //cout << setw(3) << std::setfill('0') << int(i*100.0 / (m-1)) << "%" << "\b\b\b\b";
 
         vector<int> columns;                            // Column coordinates for the elements in this row.
-        
-        for (int index = 0; index < nnzPerRow; index++) // RANDOM NUMBER OF NONZEROS PER ROW...
-        {
+
+        for ( int index = 0; index < nnzPerRow; index++ ) { // RANDOM NUMBER OF NONZEROS PER ROW...
             int p = -1;
 
-            do
-            {
-                p = i + (std::rand() % (n-i));
-            
-            } while (p < i || p > n-1);
-            
-            columns.push_back(p);
+            do {
+                p = i + ( std::rand() % ( n-i ) );
+
+            } while ( p < i || p > n-1 );
+
+            columns.push_back ( p );
         }
 
-        std::sort(columns.begin(), columns.end());
+        std::sort ( columns.begin(), columns.end() );
 
         std::vector<int>::iterator it;
-        it = std::unique(columns.begin(), columns.end());
-        
-        columns.resize(std::distance(columns.begin(), it));
+        it = std::unique ( columns.begin(), columns.end() );
+
+        columns.resize ( std::distance ( columns.begin(), it ) );
 
 
-        for (int j = 0; j < columns.size(); j++)
-        {
+        for ( int j = 0; j < columns.size(); j++ ) {
             double value = 0.0;
-            do
-            {
-                value = std::rand() / (double)RAND_MAX;
-            
-            } while (value == 0.0);
-            
-            cols.push_back(columns[j]);
-            values.push_back(value);
+            do {
+                value = std::rand() / ( double ) RAND_MAX;
+
+            } while ( value == 0.0 );
+
+            cols.push_back ( columns[j] );
+            values.push_back ( value );
         }
 
         rows[i+1] = rows[i] + columns.size();
 
     }
     cout << endl;
-    
+
 
     int nonzeros = values.size();
-    
-    A.allocate(m, n, nonzeros);
-    
+
+    A.allocate ( m, n, nonzeros );
+
     int* ia   = new int[m+1];
     int* ja   = new int[nonzeros];
     double* a = new double[nonzeros];
 
-    std::copy(rows.begin(),   rows.end(),   ia);
-    std::copy(cols.begin(),   cols.end(),   ja);
-    std::copy(values.begin(), values.end(), a);
-    
-    A.make(m, n, nonzeros, ia, ja, a);
+    std::copy ( rows.begin(),   rows.end(),   ia );
+    std::copy ( cols.begin(),   cols.end(),   ja );
+    std::copy ( values.begin(), values.end(), a );
 
-    printf("- Done! \n\n");
+    A.make ( m, n, nonzeros, ia, ja, a );
+
+    printf ( "- Done! \n\n" );
 
 }
 
 
 
-void printDense2BIN(int N, double *dense, char* filename)
-{
+void printDense2BIN ( int N, double *dense, char* filename ) {
 
     cout << "\t---> Dumping matrix to file " << filename << " ... " << endl;
 
-    fstream fout(filename, ios::binary);
-    if (!fout.is_open())
-    {
+    fstream fout ( filename, ios::binary );
+    if ( !fout.is_open() ) {
         cout << "could not open file " << filename << " for output\n";
         return;
     }
 
-    fout.seekp(0);
-    fout.write((const char*)dense, sizeof(double)*N);
-    
+    fout.seekp ( 0 );
+    fout.write ( ( const char* ) dense, sizeof ( double ) *N );
+
     fout.close();
 
 }
@@ -360,8 +333,8 @@ void dense2CSR_sub ( double *mat, int m, int n, int lld_mat, CSRdouble& A, int s
     double *pdata;
     int  *prows,*pcols;
 
-    assert(A.nrows>=startrow + m);
-    assert(A.ncols>=startcol + n);
+    assert ( A.nrows>=startrow + m );
+    assert ( A.ncols>=startcol + n );
 
     nnz=0;
 
@@ -375,28 +348,28 @@ void dense2CSR_sub ( double *mat, int m, int n, int lld_mat, CSRdouble& A, int s
 
     prows= new int [A.nrows + 1];
     if ( prows == NULL ) {
-        printf ( "unable to allocate memory for prows in dense2CSR (required: %ld bytes)\n", (A.nrows+1) * sizeof ( int ) );
-        exit(1);
+        printf ( "unable to allocate memory for prows in dense2CSR (required: %ld bytes)\n", ( A.nrows+1 ) * sizeof ( int ) );
+        exit ( 1 );
     }
     pcols= new int[nnz];
     if ( pcols == NULL ) {
         printf ( "unable to allocate memory for pcols in dense2CSR (required: %ld bytes)\n", nnz * sizeof ( int ) );
-        exit(1);
+        exit ( 1 );
     }
     pdata= new double[nnz];
     if ( pdata == NULL ) {
         printf ( "unable to allocate memory for pdata in dense2CSR (required: %ld bytes)\n", nnz * sizeof ( double ) );
-        exit(1);
+        exit ( 1 );
     }
 
     *prows=0;
     nnz=0;
-    for (i=1; i<=startrow; i++) {
-        * (prows+i)=0;
+    for ( i=1; i<=startrow; i++ ) {
+        * ( prows+i ) =0;
     }
     for ( i=0; i<m; ++i ) {
         for ( j=0; j<n; ++j ) {
-            if ( fabs ( * ( mat+j*lld_mat+i ) ) >1e-10 ) { //If stored column-wise (BLAS), then moving through a row is going up by lld_mat (number of rows).
+            if ( fabs ( * ( mat+j*lld_mat+i ) ) >1e-20 ) { //If stored column-wise (BLAS), then moving through a row is going up by lld_mat (number of rows).
                 * ( pdata+nnz ) = * ( mat+j*lld_mat+i );
                 * ( pcols+nnz ) = j+startcol;
                 nnz++;
@@ -404,8 +377,8 @@ void dense2CSR_sub ( double *mat, int m, int n, int lld_mat, CSRdouble& A, int s
         }
         * ( prows+i+startrow+1 ) =nnz;
     }
-    for (i=startrow+m+1; i<=A.nrows; ++i) {
-        *(prows+i)=nnz;
+    for ( i=startrow+m+1; i<=A.nrows; ++i ) {
+        * ( prows+i ) =nnz;
     }
     rows=A.nrows;
     cols=A.ncols;
@@ -626,18 +599,17 @@ void CSRdouble::addBCSR ( CSRdouble& B ) {
  **/
 void CSRdouble::extendrows ( CSRdouble& B, int startrowB, int nrowsB ) {
     assert ( ncols==B.ncols );
-    assert (startrowB < B.nrows);
+    assert ( startrowB < B.nrows );
     int  nonzeroes, nonzeroesB, i, colindex;
     int  n        = nrows + nrowsB;
     int* prows;
     int* pcols;
     double* pdata;
 
-    if (startrowB+nrowsB > B.nrows) {
+    if ( startrowB+nrowsB > B.nrows ) {
         nonzeroesB = B.nonzeros - B.pRows[startrowB];
         n = B.nrows - startrowB + nrows;
-    }
-    else
+    } else
         nonzeroesB = B.pRows[startrowB + nrowsB] - B.pRows[startrowB];
     nonzeroes=nonzeroesB + nonzeros;
     colindex=B.pRows[startrowB];
@@ -646,21 +618,21 @@ void CSRdouble::extendrows ( CSRdouble& B, int startrowB, int nrowsB ) {
     pcols = new int [nonzeroes];
     pdata = new double [nonzeroes];
 
-    memcpy ( prows, & (pRows[0] ), nrows * sizeof(int));
-    memcpy ( pcols, & (pCols[0] ), nonzeros * sizeof(int));
-    memcpy ( pdata, & (pData[0] ), nonzeros * sizeof(double));
-    for (i=0; i<=nrowsB; ++i) {
-        if(startrowB+i <= B.nrows)
+    memcpy ( prows, & ( pRows[0] ), nrows * sizeof ( int ) );
+    memcpy ( pcols, & ( pCols[0] ), nonzeros * sizeof ( int ) );
+    memcpy ( pdata, & ( pData[0] ), nonzeros * sizeof ( double ) );
+    for ( i=0; i<=nrowsB; ++i ) {
+        if ( startrowB+i <= B.nrows )
             prows[nrows+i]= nonzeros + B.pRows[startrowB+i]-B.pRows[startrowB];
     }
 
-    assert(prows[n]==nonzeroes);
+    assert ( prows[n]==nonzeroes );
 
-    if(prows[n] != nonzeroes)
-        printf("nonzeroes (%d) not equal to last element of prows (%d)", nonzeroes, prows[n]);
+    if ( prows[n] != nonzeroes )
+        printf ( "nonzeroes (%d) not equal to last element of prows (%d)", nonzeroes, prows[n] );
 
-    memcpy ( &(pcols[nonzeros]), & ( B.pCols[colindex] ), nonzeroesB * sizeof(int));
-    memcpy ( &(pdata[nonzeros]), & ( B.pData[colindex] ), nonzeroesB * sizeof(double));
+    memcpy ( & ( pcols[nonzeros] ), & ( B.pCols[colindex] ), nonzeroesB * sizeof ( int ) );
+    memcpy ( & ( pdata[nonzeros] ), & ( B.pData[colindex] ), nonzeroesB * sizeof ( double ) );
 
     delete[] pRows;
     delete[] pCols;
@@ -668,3 +640,60 @@ void CSRdouble::extendrows ( CSRdouble& B, int startrowB, int nrowsB ) {
 
     make ( n, B.ncols, nonzeroes, prows, pcols, pdata );
 }
+
+void CSRdouble::changeCols ( int cols ) {
+    if ( cols >= ncols ) {
+        ncols=cols;
+        return;
+    }
+    int* prows;
+    int* pcols;
+    double* pdata;
+    int nnz;
+
+    prows = new int [nrows+1];
+    pcols = new int [nonzeros];
+    pdata = new double [nonzeros];
+
+    prows[0]=0;
+
+    nnz=0;
+    for ( int i=0; i<nrows; ++i ) {
+        for ( int index=pRows[i]; index < pRows[i+1]; index++ ) {
+            if ( pCols[index]<cols ) {
+                pcols[nnz]=pCols[index];
+                pdata[nnz]=pData[index];
+                nnz++;
+            } else
+                continue;
+        }
+        prows[i+1]=nnz;
+    }
+
+    delete[] pRows;
+    delete[] pCols;
+    delete[] pData;
+
+    make ( nrows, cols, nnz, prows, pcols, pdata );
+}
+
+void CSRdouble::changeRows ( int rows ) {
+    if ( rows >= nrows ) {
+        pRows= ( int * ) realloc ( pRows, ( rows+1 ) *sizeof ( int ) );
+        for ( int i=nrows+1; i<=rows; ++i ) {
+            pRows[i]=pRows[nrows];
+        }
+        nrows=rows;
+        return;
+    }
+
+    int nnz;
+
+    nnz=pRows[rows];
+    pData= ( double * ) realloc ( pData,nnz *sizeof ( double ) );
+    pCols= ( int * ) realloc ( pCols,nnz *sizeof ( int ) );
+    pRows= ( int * ) realloc ( pRows, ( rows+1 ) *sizeof ( int ) );
+    nonzeros=nnz;
+    nrows=rows;
+}
+
