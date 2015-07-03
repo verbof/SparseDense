@@ -26,7 +26,7 @@ void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i,
         genDiagonalD(Dcols*blocksize, (double)Ddim, Dmat);
     }
 
-    if (position[0] == dims[0]-1) // the processor belongs to the last row of the grid...
+    /*if (position[0] == dims[0]-1) // the processor belongs to the last row of the grid...
     {
         int exceeding_rows = 0;
         
@@ -46,13 +46,10 @@ void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i,
 
         exceeding_cols -= Ddim;
         s_B_j          -= exceeding_cols;
-    }
+    }*/
 
-    double* denseB_j  = new double[Adim*s_B_j];
-    double* denseBT_i = new double[s_BT_i*Adim];
-
-    genOnes(Adim,   s_B_j, 1e-15, denseB_j);
-    genOnes(s_BT_i, Adim,  1e-15, denseBT_i);
+    genOnes(Adim,   s_B_j, 1e-4, B_j);
+    genOnes(s_BT_i, Adim,  1e-4, BT_i);
 
     *size_BT_i = s_BT_i;
     *size_B_j  = s_B_j;

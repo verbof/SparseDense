@@ -9,7 +9,7 @@
 
 /Dimension of sparse sublatrix A (mandatory)
 #DimensionA
-11
+27
 
 /Filename of the dense matrix file (D) (mandatory in binary format)
 #DenseFileD

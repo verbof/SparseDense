@@ -195,6 +195,9 @@ int main(int argc, char **argv) {
 
 
         blacs_barrier_ ( &ICTXT2D,"ALL" ); //added
+	
+	B_j  = new double[Adim * Dcols * blocksize];
+        BT_i = new double[Adim * Drows * blocksize];
 
         //read_in_BD ( DESCD,D, BT_i, B_j, Btsparse ) ;
         if (iam == 0)
@@ -210,7 +213,7 @@ int main(int argc, char **argv) {
         //cout << "nnz(A) = " << Asparse.nonzeros << endl;
         //Asparse.loadFromFileSym("/users/drosos/simple/matrices/NornePrimaryJacobian.csr");
 
-        make3DLaplace(10, 10, 10, Asparse); cout << "A is Laplacian" << endl;
+        make3DLaplace(3, 3, 3, Asparse); cout << "A is Laplacian" << endl;
         //Asparse.reduceSymmetric();
         shiftIndices(Asparse, -1);
         cout << "- A generated." << endl;
@@ -224,7 +227,7 @@ int main(int argc, char **argv) {
         //printsparseC_bool = true;
         if(printsparseC_bool) {
 
-            makeOnes(Adim, Ddim, 1e-15, Btsparse);
+            makeOnes(Adim, Ddim, 1e-4, Btsparse);
 
             CSRdouble Dmat, Dblock, Csparse;
             Dblock.nrows=Dblocks * blocksize;
@@ -284,14 +287,14 @@ int main(int argc, char **argv) {
                 printf("Number of nonzeroes in D: %d\n",Dmat.nonzeros);
                 Dmat.reduceSymmetric();
 		
-                Btsparse.transposeIt(1);
+                //Btsparse.transposeIt(1);
                 Dmat.nrows=Ddim;
                 Dmat.ncols=Ddim;
                 Dmat.pRows=(int *) realloc(Dmat.pRows,(Ddim+1) * sizeof(int));
                 create2x2SymBlockMatrix(Asparse,Btsparse, Dmat, Csparse);
                 Btsparse.clear();
                 Dmat.clear();
-                Csparse.writeToFile(filenameC);
+                Csparse.writeToFile("Csparse.csr");
                 Csparse.clear();
                 if(filenameC != NULL)
                     free(filenameC);
@@ -321,7 +324,7 @@ int main(int argc, char **argv) {
             return info;
         }
 
-        AB_sol=(double *) calloc(Adim * Dcols*blocksize,sizeof(double));
+        AB_sol=(double *) calloc(Adim * s_B_j,sizeof(double));
 
         // Each process calculates the Schur complement of the part of D at its disposal. (see src/schur.cpp)
         // The solution of A * X = B_j is stored in AB_sol (= A^-1 * B_j)

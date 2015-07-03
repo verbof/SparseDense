@@ -60,12 +60,8 @@ int make_Sij_denseB(CSRdouble& A, double* BT_i, double* B_j, int d_BT_i, int d_B
 
     solveSystem(A,      AB_sol_out, B_j,    -2, d_B_j); // System: A * AB_sol_out = B_j;
     //          A   *   x       =   b,    type, #RHS
-
-    if(B_j != NULL) 
-    {
-        free(B_j);
-        B_j = NULL;
-    }
+    
+    cout << "system solved on process " << iam << endl;
 
     //printf("Processor %d finished solving system AX=B\n",iam);
 
@@ -82,11 +78,6 @@ int make_Sij_denseB(CSRdouble& A, double* BT_i, double* B_j, int d_BT_i, int d_B
     
     if(iam==0)
       cout << "Time for multiplying BT_i and Y_j: " << MultTime * 0.001 << " sec" << endl;
-
-    if(BT_i != NULL) {
-        free(BT_i);
-        BT_i = NULL;
-    }
 
     return 0;
 }
