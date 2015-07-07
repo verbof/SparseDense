@@ -968,6 +968,19 @@ void genZeros(int m, int n, double* zeros)
 }
 
 
+void genAlmostOnes(int m, int n, double value, double* ones)
+{
+
+    for (int j = 0; j < m; j++)
+    {
+        for (int k = 0; k < n; k++)
+        {
+            ones[j+k*m] = 0.0 + value*(j+k);
+        }
+    }
+
+}
+
 void genOnes(int m, int n, double value, double* ones)
 {
 
@@ -1114,12 +1127,12 @@ void make3DLaplace(int nx, int ny, int nz, CSRdouble& L)
      for (j = 1; j <= ny; j++) {
         for (i = 1; i <= nx; i++) {
 	 /* diagonal */
-         dval = nx*ny*nz;
+         dval = nx*ny*nz + (i + j + k) / 100 ;
          //if (printa)
             //printf("%d %d  %8.2e\n", mesh(i,j,k), mesh(i,j,k), dval); 
 
          rowind[count] = mesh(i,j,k); 
-         nzvals[count] = dval; /* no pivots */
+         nzvals[count] = dval + node; /* no pivots */
          count++;
 
          /* lower */
@@ -1129,6 +1142,7 @@ void make3DLaplace(int nx, int ny, int nz, CSRdouble& L)
 
             rowind[count] = mesh(i+1,j,k);
             dval = -1.0;
+            dval = (i + j + k) / 100 ;
             nzvals[count] = dval;
             count++;
          }
@@ -1141,6 +1155,7 @@ void make3DLaplace(int nx, int ny, int nz, CSRdouble& L)
 
             rowind[count] = mesh(i,j+1,k);
             dval = -1.0;
+            dval = (i + j + k) / 100 ;
             nzvals[count] = dval;
             count++;
          }       

@@ -44,6 +44,7 @@ public:
     void  fillSymmetric();
     void  reduceSymmetric();
     void  writeToFile ( const char* filename, ios::openmode mode = ios::out ) const;
+    void  writeToFilePSelInv(const char* filename, ios::openmode mode = ios::out) const;
     void  savedebug(const char* filename) const;
     void  saveDiagonal(const char* filename) const;
     void  getDiagonal(double* diagonal) const;

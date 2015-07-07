@@ -40,6 +40,7 @@ void makeDiagonalPerturbV(int n, double* val, double pert, CSRdouble& DP);
 void make3DLaplace(int nx, int ny, int nz, CSRdouble& L);
 void genZeros(int m, int n, double* zeros);
 void genOnes(int m, int n, double value, double* ones);
+void genAlmostOnes(int m, int n, double value, double* ones);
 void makeOnes(int m, int n, double value, CSRdouble& E);
 void genDiagonalV(int n, double* value, double* diag);
 void genDiagonalD(int n, double d, double* diag);
