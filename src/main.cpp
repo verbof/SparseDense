@@ -41,7 +41,7 @@ int lld_D, Dblocks, Drows, Dcols;
 int size, *dims, * position, ICTXT2D, iam;
 char *filenameD, *filenameA, *filenameB, *filenameC;
 double lambda;
-bool printsparseC_bool;
+bool printsparseC_bool = false;
 MPI_Status status;
 int Bassparse_bool;
 ParDiSO pardiso_var ( -2,0 );
@@ -64,16 +64,28 @@ int main ( int argc, char **argv ) {
     int *DESCD, *DESCAB_sol, *DESCXSROW;
     //CSRdouble BT_i, B_j;
     int s_BT_i = 0;
-	int s_B_j  = 0;              // size of BT_i (#rows) and B_j (#cols)
+    int s_B_j  = 0;              // size of BT_i (#rows) and B_j (#cols)
     
-    if ( argc != 2 ) {
+    int nx, ny, nz;
+
+    // needed args: nx, ny, nz, Ddim, blocksize; 
+    // optional: C.csr - if provided, the output file is written.
+    if (argc < 6)
+    {
         cout << "Too few arguments." << endl;
-        cout << "Usage: " << argv[0] << " inputfile" << endl;
-        exit ( -1 );
+        cout << "Usage: " << argv[0] << " nx ny nz Ddim blocksize C.csr" << endl;
+        exit(-1);
     }
 
 
+    /*  what to do with input args...
+        Adim      = atoi(argv[1])*atoi(argv[2])*atoi(argv[3]);
+        Ddim      = atoi(argv[4]);
+        blocksize = atoi(argv[5]);
+    */
 
+    //printf("Adim=%d, Ddim=%d, blocksize=%d *** %s", Adim, Ddim, blocksize, outputc);
+    //exit(-123);
 
     //Initialise MPI and some MPI-variables
     info = MPI_Init ( &argc, &argv );
@@ -132,12 +144,24 @@ int main ( int argc, char **argv ) {
             return -1;
         }
 
+
+        nx        = atoi(argv[1]);
+        ny        = atoi(argv[2]);
+        nz        = atoi(argv[3]);
+        Adim      = nx*ny*nz;
+        Ddim      = atoi(argv[4]);
+        blocksize = atoi(argv[5]);
+
+        /*
         //Filenames, dimensions of all matrices and other important variables are read in as global variables (see src/readinput.cpp)
+        
         info=read_input ( *++argv );
-        if ( info!=0 ) {
+        if ( info!=0 ) 
+        {
             printf ( "Something went wrong when reading input file for processor %d\n",iam );
             return -1;
         }
+        */
         
         //blacs_barrier is used to stop any process of going beyond this point before all processes have made it up to this point.
         blacs_barrier_ ( &ICTXT2D,"ALL" );
@@ -220,7 +244,7 @@ int main ( int argc, char **argv ) {
         //cout << "nnz(A) = " << Asparse.nonzeros << endl;
         //Asparse.loadFromFileSym("/users/drosos/simple/matrices/NornePrimaryJacobian.csr");
 
-        make3DLaplace ( 3, 3, 3, Asparse );
+        make3DLaplace(nx, ny, nz, Asparse);
         cout << "A is Laplacian" << endl;
         //Asparse.reduceSymmetric();
         shiftIndices ( Asparse, -1 );
@@ -233,10 +257,10 @@ int main ( int argc, char **argv ) {
         assert ( Asparse.ncols == Adim );
 	
 
-        //printsparseC_bool = true;
-        if ( printsparseC_bool ) {
-
-            //makeOnes(Adim, Ddim, 1e-4, Btsparse);
+        if (argc == 7) // if the name of the output file for C is given as parameter
+        {
+            filenameC = new char[250];
+            strcpy(filenameC, argv[6]);
 
             CSRdouble Dmat, Dblock, Csparse, Bblock;
             Dblock.nrows=Dblocks * blocksize;
@@ -341,19 +365,25 @@ int main ( int argc, char **argv ) {
                 //Dmat.writeToFile("D_sparse.csr");
                 printf ( "Number of nonzeroes in D: %d\n",Dmat.nonzeros );
                 Dmat.reduceSymmetric();
-		//Dmat.writeToFile("D_sparse_symm.csr");
+                //Dmat.writeToFile("D_sparse_symm.csr");
 
                 //Btsparse.writeToFile("Btsparse.csr");
                 Dmat.changeCols(Ddim);
-		Dmat.changeRows(Ddim);
-		//Dmat.writeToFile("Dsparse_red.csr");
-		Btsparse.changeCols(Ddim);
+                Dmat.changeRows(Ddim);
+                //Dmat.writeToFile("Dsparse_red.csr");
+                Btsparse.changeCols(Ddim);
                 create2x2SymBlockMatrix ( Asparse,Btsparse, Dmat, Csparse );
                 Btsparse.clear();
                 Dmat.clear();
 		
-                Csparse.writeToFile ( "Csparse.csr" );
+                Csparse.fillSymmetric();
+                Csparse.writeToFilePSelInv(filenameC);
                 Csparse.clear();
+
+                //double* Cdense = new double[Csparse.nrows * Csparse.ncols];
+                //CSR2dense(Csparse, Cdense);
+                //printdense(Adim+Ddim, Adim+Ddim, Cdense, "C.txt");
+
                 if ( filenameC != NULL )
                     free ( filenameC );
                 filenameC=NULL;

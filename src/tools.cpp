@@ -284,7 +284,7 @@ void printdense ( int m, int n, double *mat, char *filename ) {
     for ( i=0; i<m; ++i ) {
         //fprintf ( fd,"[\t" );
         for ( j=0; j<n; ++j ) {
-            fprintf ( fd,"%12.8g\t",* ( mat+i*n +j ) );
+            fprintf ( fd,"%.16e\t",* ( mat+i*n +j ) );
         }
         fprintf ( fd,"\n" );
     }

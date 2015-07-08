@@ -23,36 +23,15 @@ void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i,
 
     if (position[0] == position[1])
     {
-        genOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), Dmat);
+        genOnes(Drows*blocksize,Dcols*blocksize, 1.0/Ddim, Dmat);
         genDiagonalD(Dcols*blocksize, (double)Ddim, Dmat);
     }
     else 
-      genOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), Dmat);
+      genOnes(Drows*blocksize,Dcols*blocksize, 1.0/Ddim, Dmat);
 
-    /*if (position[0] == dims[0]-1) // the processor belongs to the last row of the grid...
-    {
-        int exceeding_rows = 0;
-        
-        for (int k = 0; k < dims[0]; k++)
-            exceeding_rows += blocksize * ceil((Dblocks-k)/(double)dims[0]);  // I compute the number of rows stored by all the processors belonging to this row.
 
-        exceeding_rows -= Ddim;             // I compute the number of rows exceeding the real number of rows of B.
-        s_BT_i         -= exceeding_rows;   // I take away the exceeding number of rows from the standard number of rows-per-process (i.e., blocksize*Drows).
-    }
-    
-    if (position[1] == dims[1]-1)
-    {
-        int exceeding_cols = 0;
-
-        for (int k = 0; k < dims[1]; k++)
-            exceeding_cols += blocksize * ceil((Dblocks-k)/(double)dims[1]);
-
-        exceeding_cols -= Ddim;
-        s_B_j          -= exceeding_cols;
-    }*/
-
-    genOnes(Adim,   s_B_j, (double) 1/Ddim, B_j);
-    genOnes(s_BT_i, Adim,  (double) 1/Ddim, BT_i);
+    genAlmostOnes(Adim,   s_B_j, 1.0/Adim, B_j);
+    genAlmostOnes(s_BT_i, Adim,  1.0/Adim, BT_i);
 
     *size_BT_i = s_BT_i;
     *size_B_j  = s_B_j;

@@ -322,6 +322,52 @@ void CSRdouble::writeToFile(const char* filename, ios::openmode mode) const
 }
 
 
+void CSRdouble::writeToFilePSelInv(const char* filename, ios::openmode mode) const
+{
+    cout << "\t---> Dumping matrix to file: " << filename << endl;
+
+    fstream fout(filename, ios::out | mode);
+    if (!fout.is_open())
+    {
+        cout << "could not open file " << filename << " for output\n";
+        return;
+    }
+
+
+    fout << nrows << " " << ncols << " " << nonzeros << " " << "0" << endl;
+
+    int i;
+    for (i = 0; i < nrows+1; i++)
+    {
+        fout << pRows[i]+1 << " ";
+    }
+
+    fout << endl;
+
+    for (i = 0; i < nonzeros; i++)
+    {
+        fout << pCols[i]+1 << " ";
+    }
+
+    fout << endl;
+
+    fout.setf(ios::scientific, ios::floatfield);
+    fout.precision(16);
+
+    for (i = 0; i < nonzeros; i++)
+    {
+        fout << pData[i] << "\n";
+    }
+
+    fout.close();
+}
+
+
+
+
+
+
+
 
 void CSRdouble::loadFromFile(const char* file, ios::openmode mode)
 {
