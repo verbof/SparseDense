@@ -382,15 +382,6 @@ int main ( int argc, char **argv ) {
             }
         }
 
-        blacs_barrier_ ( &ICTXT2D,"A" );
-
-        /********************** TIMING **********************/
-        if ( iam == 0 )
-            watch.tick ( totaltime );
-
-        if ( iam == 0 )
-            watch.tick ( cresctime );
-
         //AB_sol will contain the solution of A*X=B, distributed across the process rows. Processes in the same process row possess the same part of AB_sol
         DESCAB_sol= ( int* ) malloc ( DLEN_ * sizeof ( int ) );
         if ( DESCAB_sol==NULL ) {
@@ -405,6 +396,15 @@ int main ( int argc, char **argv ) {
         }
 
         AB_sol= ( double * ) calloc ( Adim * s_B_j,sizeof ( double ) );
+	
+	blacs_barrier_ ( &ICTXT2D,"A" );
+
+        /********************** TIMING **********************/
+        if ( iam == 0 )
+            watch.tick ( totaltime );
+
+        if ( iam == 0 )
+            watch.tick ( cresctime );
 
         // Each process calculates the Schur complement of the part of D at its disposal. (see src/schur.cpp)
         // The solution of A * X = B_j is stored in AB_sol (= A^-1 * B_j)
@@ -435,6 +435,10 @@ int main ( int argc, char **argv ) {
         cout << iam << " just wrote debug stuff... " << endl;
 
         */
+	blacs_barrier_ ( &ICTXT2D,"ALL" );
+	
+	if ( iam == 0 )
+            watch.tack ( cresctime );
 
 
         if ( iam !=0 ) {
@@ -453,8 +457,7 @@ int main ( int argc, char **argv ) {
         blacs_barrier_ ( &ICTXT2D,"ALL" );
 
         /********************** TIMING **********************/
-        if ( iam == 0 )
-            watch.tack ( cresctime );
+        
 
         if ( iam == 0 )
             watch.tick ( facsctime );
@@ -487,12 +490,12 @@ int main ( int argc, char **argv ) {
         /********************** TIMING **********************/
         if ( iam == 0 )
             watch.tack ( invsctime );
+	
+	InvD_T_Block = ( double* ) calloc ( Dblocks * blocksize + Adim ,sizeof ( double ) );
 
         if ( iam == 0 )
             watch.tick ( gathrtime );
-
-
-        InvD_T_Block = ( double* ) calloc ( Dblocks * blocksize + Adim ,sizeof ( double ) );
+        
 
         blacs_barrier_ ( &ICTXT2D,"A" );
         /********************** TIMING **********************/
