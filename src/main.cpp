@@ -7,6 +7,7 @@
 #include "IO.hpp"
 #include "ParDiSO.hpp"
 #include "RealMath.hpp"
+#include "ComplexMath.hpp"
 #include "smat.h"
 #include "timing.hpp"
 #include <cassert>
@@ -718,7 +719,7 @@ int main ( int argc, char **argv ) {
         //read_in_BD ( DESCD,D, BT_i, B_j, Btsparse ) ;
         if ( iam == 0 )
             cout << "Generating A, B and D... \n" << endl;
-        generate_BD ( D, BT_i, B_j, &s_BT_i, &s_B_j );
+        generate_BD_complex ( D, BT_i, B_j, &s_BT_i, &s_B_j );
 
         cout << "- B, D generated." << endl;
 
@@ -729,8 +730,8 @@ int main ( int argc, char **argv ) {
         //cout << "nnz(A) = " << Asparse.nonzeros << endl;
         //Asparse.loadFromFileSym("/users/drosos/simple/matrices/NornePrimaryJacobian.csr");
 
-        make3DLaplace ( 3, 3, 3, Asparse );
-        cout << "A is Laplacian" << endl;
+        make3DLaplace_complex ( 3, 3, 3, Asparse, 1.0 );
+        cout << "A is a complex Laplacian" << endl;
         //Asparse.reduceSymmetric();
         shiftIndices ( Asparse, -1 );
         cout << "- A generated." << endl;

@@ -1213,6 +1213,7 @@ void make3DLaplace(int nx, int ny, int nz, CSRdouble& L)
 }
 
 
+
 void gen3DLaplace(int nx, int ny, int nz, double* lap)
 {
    CSRdouble L;

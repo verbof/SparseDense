@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "shared_var.h"
 #include "RealMath.hpp"
+#include "ComplexMath.hpp"
 #include "CSRdouble.hpp"
 #include <cassert>
 #include "config.hpp"
@@ -54,11 +55,11 @@ void generate_BD_complex(complex< double > * Dmat, complex< double >* BT_i, comp
 
     if (position[0] == position[1])
     {
-        genComplexOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), Dmat);
-        genDiagonalD(Dcols*blocksize, (double)Ddim, Dmat);
+        genComplexOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), (double) 1/Ddim, Dmat);
+        genDiagonalDComplex(Dcols*blocksize, (double)Ddim, 1.0, Dmat);
     }
     else 
-      genOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), Dmat);
+      genComplexOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), (double) 1/Ddim, Dmat);
 
     /*if (position[0] == dims[0]-1) // the processor belongs to the last row of the grid...
     {
@@ -82,8 +83,8 @@ void generate_BD_complex(complex< double > * Dmat, complex< double >* BT_i, comp
         s_B_j          -= exceeding_cols;
     }*/
 
-    genOnes(Adim,   s_B_j, (double) 1/Ddim, B_j);
-    genOnes(s_BT_i, Adim,  (double) 1/Ddim, BT_i);
+    genComplexOnes(Adim,   s_B_j, (double) 1/Ddim, (double) 1/Ddim, B_j);
+    genComplexOnes(s_BT_i, Adim,  (double) 1/Ddim, (double) 1/Ddim, BT_i);
 
     *size_BT_i = s_BT_i;
     *size_B_j  = s_B_j;
@@ -94,7 +95,7 @@ void generate_BD_complex(complex< double > * Dmat, complex< double >* BT_i, comp
     //dense2CSR(bt_i, s_BT_i, Adim,  BT_i);
 
 
-    printf("Process %d just generated B & D! \n", iam);
+    printf("Process %d just generated complex B & D! \n", iam);
 
 }
 

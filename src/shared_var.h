@@ -1,6 +1,8 @@
 #ifndef Shared_Var_h
 #define Shared_Var_h
 
+#include "config.hpp"
+
 #define MPI_COMM_WORLD ((MPI_Comm)0x44000000)
 
 typedef int MPI_Comm;
@@ -47,6 +49,7 @@ void printdense ( int m, int n, double *mat, char *filename );
 int read_in_BD  ( int * DESCD, double * Dmat, CSRdouble& BT_i, CSRdouble& B_j, CSRdouble& Btsparse ) ;
 //void generate_BD(double* Dmat, CSRdouble& BT_i, CSRdouble& B_j);
 void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i, double* B_j, int* size_BT_i, int* size_B_j);
+void generate_BD_complex(complex< double > * Dmat, complex< double >* BT_i, complex< double >* B_j, int* size_BT_i, int* size_B_j);
 int read_input ( char* filename ) ;
 int make_Sij_sparse_parallel (CSRdouble& A, CSRdouble& BT_i, CSRdouble& B_j, double* T_ij, int lld_Tij );
 int make_Sij_parallel_denseB(CSRdouble& A, CSRdouble& BT_i, CSRdouble& B_j, double * T_ij, int lld_T, double* AB_sol) ;
