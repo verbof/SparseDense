@@ -1,4 +1,4 @@
-# Install script for directory: /home/arnedc/projects/simplesparsedense
+# Install script for directory: /home/arnedc/Projects/simplesparsedense
 
 # Set the install prefix
 IF(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -38,7 +38,7 @@ ELSE(CMAKE_INSTALL_COMPONENT)
   SET(CMAKE_INSTALL_MANIFEST "install_manifest.txt")
 ENDIF(CMAKE_INSTALL_COMPONENT)
 
-FILE(WRITE "/home/arnedc/projects/simplesparsedense/build/${CMAKE_INSTALL_MANIFEST}" "")
+FILE(WRITE "/home/arnedc/Projects/simplesparsedense/build/${CMAKE_INSTALL_MANIFEST}" "")
 FOREACH(file ${CMAKE_INSTALL_MANIFEST_FILES})
-  FILE(APPEND "/home/arnedc/projects/simplesparsedense/build/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
+  FILE(APPEND "/home/arnedc/Projects/simplesparsedense/build/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
 ENDFOREACH(file)

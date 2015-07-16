@@ -1,4 +1,5 @@
 #include "CSRdouble.hpp"
+#include "CSRcomplex.hpp"
 #include "config.hpp"
 #include <math.h>
 #include <stdlib.h>
@@ -291,6 +292,22 @@ void printdense ( int m, int n, double *mat, char *filename ) {
     fclose ( fd );
 }
 
+void printdense_complex ( int m, int n, complex< double > *mat, char *filename ) {
+    FILE *fd;
+    fd = fopen ( filename,"w" );
+    if ( fd==NULL )
+        printf ( "error creating file" );
+    int i,j;
+    for ( i=0; i<m; ++i ) {
+        //fprintf ( fd,"[\t" );
+        for ( j=0; j<n; ++j ) {
+            fprintf ( fd,"%12.8g + i%12.8g\t",(mat+i*n +j)->real(),(mat+i*n +j)->imag());
+        }
+        fprintf ( fd,"\n" );
+    }
+    fclose ( fd );
+}
+
 //converting a dense matrix (m x n) stored column-wise to CSR format
 void dense2CSR ( double *mat, int m, int n, CSRdouble& A ) {
     int i,j, nnz;
@@ -370,6 +387,64 @@ void dense2CSR_sub ( double *mat, int m, int n, int lld_mat, CSRdouble& A, int s
     for ( i=0; i<m; ++i ) {
         for ( j=0; j<n; ++j ) {
             if ( fabs ( * ( mat+j*lld_mat+i ) ) >1e-20 ) { //If stored column-wise (BLAS), then moving through a row is going up by lld_mat (number of rows).
+                * ( pdata+nnz ) = * ( mat+j*lld_mat+i );
+                * ( pcols+nnz ) = j+startcol;
+                nnz++;
+            }
+        }
+        * ( prows+i+startrow+1 ) =nnz;
+    }
+    for ( i=startrow+m+1; i<=A.nrows; ++i ) {
+        * ( prows+i ) =nnz;
+    }
+    rows=A.nrows;
+    cols=A.ncols;
+    A.clear();
+    A.make ( rows,cols,nnz,prows,pcols,pdata );
+}
+
+void complex2CSR_sub ( complex< double > *mat, int m, int n, int lld_mat, CSRcomplex& A, int startrow, int startcol ) {
+    int i,j, nnz, rows, cols;
+    complex< double > *pdata;
+    int  *prows,*pcols;
+
+    assert ( A.nrows>=startrow + m );
+    assert ( A.ncols>=startcol + n );
+
+    nnz=0;
+
+    for ( i=0; i<m; ++i ) {
+        for ( j=0; j<n; ++j ) {
+            if ( std::abs ( * ( mat+j*lld_mat+i ) ) >1e-20 ) {
+                nnz++;
+            }
+        }
+    }
+
+    prows= new int [A.nrows + 1];
+    if ( prows == NULL ) {
+        printf ( "unable to allocate memory for prows in dense2CSR (required: %ld bytes)\n", ( A.nrows+1 ) * sizeof ( int ) );
+        exit ( 1 );
+    }
+    pcols= new int[nnz];
+    if ( pcols == NULL ) {
+        printf ( "unable to allocate memory for pcols in dense2CSR (required: %ld bytes)\n", nnz * sizeof ( int ) );
+        exit ( 1 );
+    }
+    pdata= new complex< double >[nnz];
+    if ( pdata == NULL ) {
+        printf ( "unable to allocate memory for pdata in dense2CSR (required: %ld bytes)\n", nnz * sizeof ( double ) );
+        exit ( 1 );
+    }
+
+    *prows=0;
+    nnz=0;
+    for ( i=1; i<=startrow; i++ ) {
+        * ( prows+i ) =0;
+    }
+    for ( i=0; i<m; ++i ) {
+        for ( j=0; j<n; ++j ) {
+            if ( std::abs ( * ( mat+j*lld_mat+i ) ) >1e-20 ) { //If stored column-wise (BLAS), then moving through a row is going up by lld_mat (number of rows).
                 * ( pdata+nnz ) = * ( mat+j*lld_mat+i );
                 * ( pcols+nnz ) = j+startcol;
                 nnz++;
@@ -589,6 +664,82 @@ void CSRdouble::addBCSR ( CSRdouble& B ) {
     make ( B.nrows, B.ncols, nonzeroes, ABprows, pcols, pdata );
 }
 
+void CSRcomplex::addBCSRComplex ( CSRcomplex& B ) {
+    complex< double > sum;
+    int Acolindex, Bcolindex,nonzeroes, colindex;
+    int * ABprows = new int[nrows+1];
+    ABprows[0]=0;
+    nonzeroes=0;
+
+    vector<int> ABcols;
+    vector< complex< double > > ABdata;
+
+    if ( nrows != B.nrows ) {
+        printf ( "rows of A (%d) are not the same as rows of B (%d)",nrows,B.nrows );
+    }
+    if ( ncols != B.ncols ) {
+        printf ( "rows of A (%d) are not the same as rows of B (%d)",ncols,B.ncols );
+    }
+    assert ( nrows == B.nrows );
+    assert ( ncols == B.ncols );
+
+    for ( int i=0; i<nrows; ++i ) {
+        Acolindex= pRows[i];
+        Bcolindex=B.pRows[i];
+
+        while ( Acolindex < pRows[i+1] && Bcolindex < B.pRows[i+1] ) {
+            if ( pCols[Acolindex] == B.pCols[Bcolindex] ) {
+                colindex=pCols[Acolindex];
+                sum=pData[Acolindex] + B.pData[Bcolindex];
+                ABdata.push_back ( sum );
+                ABcols.push_back ( colindex );
+                Acolindex++, Bcolindex++, nonzeroes++;
+            } else if ( pCols[Acolindex] < B.pCols[Bcolindex] ) {
+                colindex=pCols[Acolindex];
+                sum=pData[Acolindex];
+                ABdata.push_back ( sum );
+                ABcols.push_back ( colindex );
+                Acolindex++, nonzeroes++;
+            } else {
+                colindex=B.pCols[Bcolindex];
+                sum=B.pData[Bcolindex];
+                ABdata.push_back ( sum );
+                ABcols.push_back ( colindex );
+                Bcolindex++, nonzeroes++;
+            }
+        }
+        while ( Acolindex < pRows[i+1] ) {
+            colindex=pCols[Acolindex];
+            sum=pData[Acolindex];
+            ABdata.push_back ( sum );
+            ABcols.push_back ( colindex );
+            Acolindex++, nonzeroes++;
+        }
+        while ( Bcolindex < B.pRows[i+1] ) {
+            colindex=B.pCols[Bcolindex];
+            sum=B.pData[Bcolindex];
+            ABdata.push_back ( sum );
+            ABcols.push_back ( colindex );
+            Bcolindex++, nonzeroes++;
+        }
+        ABprows[i+1]=nonzeroes;
+    }
+    complex< double >* pdata = new complex< double >[nonzeroes];
+    int*    pcols = new int[nonzeroes];
+
+    if ( ABprows[nrows]!=nonzeroes )
+        printf ( "last element of prows (%d) not equal to number of nonzeroes (%d)\n",ABprows[nrows],nonzeroes );
+
+    memcpy ( pcols, &ABcols[0], nonzeroes*sizeof ( int ) );
+    memcpy ( pdata, &ABdata[0], nonzeroes*sizeof ( complex< double > ) );
+
+    delete[] pRows;
+    delete[] pCols;
+    delete[] pData;
+
+    make ( B.nrows, B.ncols, nonzeroes, ABprows, pcols, pdata );
+}
+
 /**
  * @brief Extends the sparse CSRDouble with a certain number of rows from sparse matrix B. The rows are simply added to the end of the original matrix
  *
@@ -691,6 +842,62 @@ void CSRdouble::changeRows ( int rows ) {
 
     nnz=pRows[rows];
     pData= ( double * ) realloc ( pData,nnz *sizeof ( double ) );
+    pCols= ( int * ) realloc ( pCols,nnz *sizeof ( int ) );
+    pRows= ( int * ) realloc ( pRows, ( rows+1 ) *sizeof ( int ) );
+    nonzeros=nnz;
+    nrows=rows;
+}
+
+void CSRcomplex::changeCols ( int cols ) {
+    if ( cols >= ncols ) {
+        ncols=cols;
+        return;
+    }
+    int* prows;
+    int* pcols;
+    complex< double >* pdata;
+    int nnz;
+
+    prows = new int [nrows+1];
+    pcols = new int [nonzeros];
+    pdata = new complex< double > [nonzeros];
+
+    prows[0]=0;
+
+    nnz=0;
+    for ( int i=0; i<nrows; ++i ) {
+        for ( int index=pRows[i]; index < pRows[i+1]; index++ ) {
+            if ( pCols[index]<cols ) {
+                pcols[nnz]=pCols[index];
+                pdata[nnz]=pData[index];
+                nnz++;
+            } else
+                continue;
+        }
+        prows[i+1]=nnz;
+    }
+
+    delete[] pRows;
+    delete[] pCols;
+    delete[] pData;
+
+    make ( nrows, cols, nnz, prows, pcols, pdata );
+}
+
+void CSRcomplex::changeRows ( int rows ) {
+    if ( rows >= nrows ) {
+        pRows= ( int * ) realloc ( pRows, ( rows+1 ) *sizeof ( int ) );
+        for ( int i=nrows+1; i<=rows; ++i ) {
+            pRows[i]=pRows[nrows];
+        }
+        nrows=rows;
+        return;
+    }
+
+    int nnz;
+
+    nnz=pRows[rows];
+    pData= ( complex< double > * ) realloc ( pData,nnz *sizeof ( complex< double > ) );
     pCols= ( int * ) realloc ( pCols,nnz *sizeof ( int ) );
     pRows= ( int * ) realloc ( pRows, ( rows+1 ) *sizeof ( int ) );
     nonzeros=nnz;

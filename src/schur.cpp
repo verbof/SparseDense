@@ -2,21 +2,28 @@
 #include <stdlib.h>
 //#include <mkl_lapack.h>
 #include "shared_var.h"
-//#include <mkl_blas.h>
+//#include <mkl/mkl_blas.h>
 #include "CSRdouble.hpp"
+#include "CSRcomplex.hpp"
 #include "ParDiSO.hpp"
 #include "RealMath.hpp"
+#include "ComplexMath.hpp"
 #include <cassert>
 #include "timing.hpp"
 
 extern "C" {
-    void dgemm_ ( const char *transa, const char *transb, const int *m, const int *n, const int *k, const double *alpha, const double *a, const int *lda, const double *b, const int *ldb, const double *beta, double *c, const int *ldc );
+    void dgemm_ ( const char *transa, const char *transb, const int *m, const int *n, const int *k, const double *alpha, const double *a, 
+		  const int *lda, const double *b, const int *ldb, const double *beta, double *c, const int *ldc );
+    void zgemm_ (const char *transa, const char *transb, const int *m, const int *n, const int *k, const complex< double > *alpha, 
+	       const complex< double > *a, const int *lda, const complex< double > *b, const int *ldb, const complex< double > *beta,
+	       complex< double > *c, const int *ldc);
     void dpotrf_( const char* uplo, const int* n, double* a, const int* lda, int* info );
     void dpotrs_( const char* uplo, const int* n, const int* nrhs,const double* a, const int* lda, double* b, const int* ldb, int* info );
 }
 
 /**
- * @brief I tried to create the Schur complement only using sparse B's and the Schur complement modus of PARDISO, but it did not work due to the fact that C can get rectangular
+ * @brief I tried to create the Schur complement only using sparse B's and the Schur complement modus of PARDISO, but it did not work 
+ * due to the fact that C can get rectangular
  *
  * @param A Full sparse (0,0)-block of which we want the Schur complement in matrix C
  * @param BT_i Sparse (1,0)-block of C corresponding to T_ij
@@ -71,6 +78,42 @@ int make_Sij_denseB(CSRdouble& A, double* BT_i, double* B_j, int d_BT_i, int d_B
     //       AB_sol_out, &(A.nrows), &d_one, T_ij, &lld_T);
     dgemm_("N", "N", &d_BT_i, &d_B_j, &A.nrows, &d_negone, BT_i, &d_BT_i,
             AB_sol_out, &A.nrows, &d_one, T_ij, &lld_T); 
+
+    secs.tack(MultTime);
+
+    cout << " \n\n *** Time needed for 'calculateSchurComplement': " << SchrTime * 0.001 << " seconds. *** \n" << endl;
+    
+    if(iam==0)
+      cout << "Time for multiplying BT_i and Y_j: " << MultTime * 0.001 << " sec" << endl;
+
+    return 0;
+}
+
+int make_Sij_denseB_complex(CSRcomplex& A, complex< double >* BT_i, complex< double >* B_j, int d_BT_i, int d_B_j, complex< double > * T_ij, 
+			    int lld_T, complex< double > * AB_sol_out) {
+
+    timing secs;
+    double MultTime  = 0.0;
+    double SchrTime  = 0.0;
+
+    //assert(A.nrows == BT_i.ncols);
+
+    if(iam==0)
+	  printf("Solving systems AX_j = B_j on all processes\n");
+
+    solveSystemComplex(A,      AB_sol_out, B_j,    -4, d_B_j); // System: A * AB_sol_out = B_j;
+    //          A   *   x       =   b,    type, #RHS
+    
+    cout << "system solved on process " << iam << endl;
+
+    //printf("Processor %d finished solving system AX=B\n",iam);
+
+
+    secs.tick(MultTime);
+    //dgemm_("N", "N", &(BT_i.nrows), &(B_j.ncols), &(BT_i.ncols), &d_negone, BT_i, &(BT_i.nrows),
+    //       AB_sol_out, &(A.nrows), &d_one, T_ij, &lld_T);
+    zgemm_("N", "N", &d_BT_i, &d_B_j, &A.nrows, &c_negone, BT_i, &d_BT_i,
+            AB_sol_out, &A.nrows, &c_one, T_ij, &lld_T); 
 
     secs.tack(MultTime);
 

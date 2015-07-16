@@ -36,6 +36,10 @@ public:
     void  loadFromFile(const char* file, ios::openmode mode = ios::out);
     void  savedebug(const char* filename) const;
     void  clear();
+    void  addBCSRComplex ( CSRcomplex& B ) ;
+    void  reduceSymmetric();
+    void  changeCols ( int cols ) ;
+    void  changeRows ( int rows ) ;
 };
 
 

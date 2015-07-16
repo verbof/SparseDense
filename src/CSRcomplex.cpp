@@ -390,3 +390,44 @@ void CSRcomplex::savedebug(const char* filename) const
       fout << "\n";
   }
 }
+
+void CSRcomplex::reduceSymmetric()
+{
+    int nonzeroes, nnz_count;
+    int  n = nrows       ;
+    int* prows    ;
+    int* pcols    ;
+    complex< double >* pdata ;
+
+    nonzeroes = (nonzeros + nrows)/2;
+
+    prows = new int[n+1];
+    pcols = new int[nonzeroes];
+    pdata = new complex< double >[nonzeroes];
+    nnz_count=0;
+    prows[0]=0;
+    for (int i = 0; i < n; i++)
+    {
+        for (int index = pRows[i]; index < pRows[i+1]; index++)
+        {
+            int j = pCols[index];
+            if(j>=i) {
+                pcols[nnz_count]=j;
+                pdata[nnz_count]=pData[index];
+                ++nnz_count;
+            }
+        }
+        prows[i+1]=nnz_count;
+    }
+
+    if (nnz_count != nonzeroes)
+        cout << "Nonzeroes do not match, nonzero_counter= " << nnz_count << "; nonzeroes= " << nonzeroes <<endl;
+
+    delete[] pRows;
+    delete[] pCols;
+    delete[] pData;
+
+    make(n, n, nnz_count, prows, pcols, pdata);
+    matrixType = SYMMETRIC;
+}
+

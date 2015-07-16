@@ -25,6 +25,8 @@ typedef int MPI_Datatype;
 #define MPI_LONG_LONG_INT  ((MPI_Datatype)0x4c000809)
 #define MPI_UNSIGNED_LONG_LONG ((MPI_Datatype)0x4c000819)
 #define MPI_LONG_LONG      MPI_LONG_LONG_INT
+#define MPI_CXX_DOUBLE_COMPLEX      ((MPI_Datatype)0x4c001035)
+
 
 typedef struct MPI_Status {
     int count;
@@ -36,6 +38,7 @@ typedef struct MPI_Status {
 } MPI_Status;
 
 class CSRdouble;
+class CSRcomplex;
 class ParDiSO;
 
 extern "C"{
@@ -46,6 +49,7 @@ extern "C"{
 }
 
 void printdense ( int m, int n, double *mat, char *filename );
+void printdense_complex ( int m, int n, complex< double > *mat, char *filename );
 int read_in_BD  ( int * DESCD, double * Dmat, CSRdouble& BT_i, CSRdouble& B_j, CSRdouble& Btsparse ) ;
 //void generate_BD(double* Dmat, CSRdouble& BT_i, CSRdouble& B_j);
 void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i, double* B_j, int* size_BT_i, int* size_B_j);
@@ -54,8 +58,11 @@ int read_input ( char* filename ) ;
 int make_Sij_sparse_parallel (CSRdouble& A, CSRdouble& BT_i, CSRdouble& B_j, double* T_ij, int lld_Tij );
 int make_Sij_parallel_denseB(CSRdouble& A, CSRdouble& BT_i, CSRdouble& B_j, double * T_ij, int lld_T, double* AB_sol) ;
 int make_Sij_denseB(CSRdouble& A, double* BT_i, double* B_j, int d_BT_i, int d_B_j, double * T_ij, int lld_T, double * AB_sol_out);
+int make_Sij_denseB_complex(CSRcomplex& A, complex< double >* BT_i, complex< double >* B_j, int d_BT_i, int d_B_j, complex< double > * T_ij, 
+			    int lld_T, complex< double > * AB_sol_out);
 void dense2CSR ( double *mat, int m, int n, CSRdouble& A );
 void dense2CSR_sub ( double *mat, int m, int n, int lld_mat, CSRdouble& A, int startrow, int startcol ) ;
+void complex2CSR_sub ( complex< double > *mat, int m, int n, int lld_mat, CSRcomplex& A, int startrow, int startcol );
 void CSR2dense ( CSRdouble& matrix, double* T_ij ) ;
 void CSR2dense_lld ( CSRdouble& matrix,double *dense, int lld_dense ) ;
 
@@ -65,6 +72,7 @@ void mult_colsA_colsC ( CSRdouble& A, double *B, int lld_B, int Acolstart, int A
 void makeRandCSRUpper(int n, int densityPerRow, CSRdouble& A);
 
 extern double d_one, d_zero, d_negone;
+extern complex< double > c_negone, c_one, c_zero;
 extern int DLEN_, i_negone, i_zero, i_one; // some many used constants
 extern int Ddim,Adim, blocksize; //dimensions of different matrices
 extern int lld_D, Dblocks,Drows, Dcols;

@@ -393,6 +393,7 @@ public:
   void factorize(CSRcomplex& A);
   void solve(CSRcomplex& A, complex<double>* x, complex<double>* rhs);
   bool makeSchurComplement(CSRcomplex& A, CSRcomplex& S);
+  void findInverseOfA(CSRcomplex& A);
 };      
 
 

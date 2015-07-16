@@ -734,5 +734,84 @@ bool ParDiSO::makeSchurComplement(CSRcomplex& Z, CSRcomplex& S)
   return is_it_full;
 }
 
+void ParDiSO::findInverseOfA(CSRcomplex& A)
+{
+  complex< double > zdum;
+
+  shiftIndices_(A, 1);
+  
+
+  // Check if this matrix is OK
+  PARDISOCHECK_Z(&mtype, 
+                 &A.nrows, 
+                 A.pData, 
+                 A.pRows, 
+                 A.pCols, 
+                 &error);
+ 
+  error_();
+  /*phase     = 12;
+
+  printf("Matrix checked by PARDISO\n");
+
+  // Perform symbolic analysis and numerical factorization
+  PARDISOCALL_D(pt,
+                &maxfct,
+                &mnum,
+                &mtype,
+                &phase,
+                &A.nrows,
+                A.pData,
+                A.pRows,
+                A.pCols,
+                perm,
+                &nrhs,
+                &iparm[1],
+                &msglvl,
+                &ddum,
+                &ddum,
+                &error,
+                &dparm[1]);
+
+
+  if(error !=0)
+    printf("Error when factorizing matrix PARDISO: %d\n",error);
+  
+  error_();
+  printf("Matrix factorized by PARDISO\n");
+  
+  */
+  phase     = -22;
+  iparm[36] = 1;   // do not overwrite internal factor L
+  
+  // Perform symbolic analysis and numerical factorization
+  PARDISOCALL_Z(pt,
+                &maxfct,
+                &mnum,
+                &mtype,
+                &phase,
+                &A.nrows,
+                A.pData,
+                A.pRows,
+                A.pCols,
+                perm,
+                &nrhs,
+                &iparm[1],
+                &msglvl,
+                &zdum,
+                &zdum,
+                &error,
+                &dparm[1]);
+
+  
+  if(error !=0)
+    printf("Error when inverting matrix PARDISO: %d\n",error);
+  
+  error_();
+  printf("Matrix inverted by PARDISO\n");
+  shiftIndices_(A, -1);
+}
+
+
 
 
