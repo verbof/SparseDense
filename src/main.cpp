@@ -205,7 +205,7 @@ int main ( int argc, char **argv ) {
         //Define the local leading dimension of D (keeping in mind that matrices are always stored column-wise)
         lld_D=Drows*blocksize;
 
-        cout << "Hi! I am " << iam << ". My position is ( " << *position << "," << *(position+1) << ") and I have... Dblocks: " << Dblocks << ";   Drows: " << Drows << ";   Dcols: " << Dcols << ";   blocksize: " << blocksize << endl;
+        //cout << "Hi! I am " << iam << ". My position is ( " << *position << "," << *(position+1) << ") and I have... Dblocks: " << Dblocks << ";   Drows: " << Drows << ";   Dcols: " << Dcols << ";   blocksize: " << blocksize << endl;
 
         //Initialise the descriptor of the dense distributed matrix
         DESCD= ( int* ) malloc ( DLEN_ * sizeof ( int ) );
@@ -228,7 +228,8 @@ int main ( int argc, char **argv ) {
             double *D, *AB_sol, *InvD_T_Block, *XSrow;
             double* BT_i;
             double* B_j;
-            pardiso_var = ParDiSO(-2,0);
+            pardiso_var.Initial(-2,0);
+	   
 	    
 	    cout << "Dimension of real A and D: " << Adim << " & " << Ddim << endl;
 
@@ -268,6 +269,7 @@ int main ( int argc, char **argv ) {
             shiftIndices ( Asparse, -1 );
             cout << "- A generated." << endl;
             Asparse.matrixType = SYMMETRIC;
+	    Asparse.writeToFile("A_real.csr");
 
             // if (iam == 0) Asparse.writeToFile("A_debug.csr");
 
@@ -275,10 +277,10 @@ int main ( int argc, char **argv ) {
             assert ( Asparse.ncols == Adim );
 
 
-            if (argc == 7) // if the name of the output file for C is given as parameter
+            if (argc == 8) // if the name of the output file for C is given as parameter
             {
                 filenameC = new char[250];
-                strcpy(filenameC, argv[6]);
+                strcpy(filenameC, argv[7]);
 
                 CSRdouble Dmat, Dblock, Csparse, Bblock;
                 Dblock.nrows=Dblocks * blocksize;
@@ -720,7 +722,7 @@ int main ( int argc, char **argv ) {
             complex< double > *D, *AB_sol, *InvD_T_Block, *XSrow, * BT_i, * B_j;
 
             CSRcomplex Asparse, Btsparse;
-            pardiso_var = ParDiSO (-4,0);
+            pardiso_var.Initial(-4,0);
 	    
 	    cout << "Dimension of complex A and D: " << Adim << " & " << Ddim << endl;
 
@@ -733,8 +735,8 @@ int main ( int argc, char **argv ) {
 
             blacs_barrier_ ( &ICTXT2D,"ALL" ); //added
 
-            B_j  = new complex< double >[Adim * Dcols * blocksize];
-            BT_i = new complex< double >[Adim * Drows * blocksize];
+            B_j  = new complex< double > [Adim * Dcols * blocksize];
+            BT_i = new complex< double > [Adim * Drows * blocksize];
 
             //read_in_BD ( DESCD,D, BT_i, B_j, Btsparse ) ;
             if ( iam == 0 )
@@ -750,36 +752,47 @@ int main ( int argc, char **argv ) {
             //cout << "nnz(A) = " << Asparse.nonzeros << endl;
             //Asparse.loadFromFileSym("/users/drosos/simple/matrices/NornePrimaryJacobian.csr");
 
-            make3DLaplace_complex ( 3, 3, 3, Asparse, 1.0 );
+            make3DLaplace_complex ( nx, ny, nz, Asparse, 0.0 );
+	    Asparse.writeToFile("A_noshift.csr");
             cout << "A is a complex Laplacian" << endl;
             //Asparse.reduceSymmetric();
             shiftIndicesComplex ( Asparse, -1 );
             cout << "- A generated." << endl;
             Asparse.matrixType = SYMMETRIC;
+	    Asparse.writeToFile("A_complex.csr");
 
             // if (iam == 0) Asparse.writeToFile("A_debug.csr");
+	    
+	    cout << "Assertions" << endl;
 
             assert ( Asparse.nrows == Adim );
             assert ( Asparse.ncols == Adim );
+	    
+	    cout << "Assertions succeeded" << endl;
 
 
-            //printsparseC_bool = true;
-            if ( printsparseC_bool ) {
-
+            if (argc == 8) // if the name of the output file for C is given as parameter
+            {
+		cout << "C will be written to file" << endl;
+                filenameC = new char[250];
+                strcpy(filenameC, argv[7]);
                 //makeOnes(Adim, Ddim, 1e-4, Btsparse);
+		
+		cout << "preparing to output C in " << filenameC << endl;
 
                 CSRcomplex Dmat, Dblock, Csparse, Bblock;
                 Dblock.nrows=Dblocks * blocksize;
                 Dblock.ncols=Dblocks * blocksize;
                 Dblock.allocate ( Dblocks * blocksize, Dblocks * blocksize, 0 );
-                Dmat.allocate ( 0,0,0 );
+                Dmat.allocate (0,0,0);
+		cout << "size of complex double: " << sizeof (complex< double >) << endl;
                 for ( i=0; i<Drows; ++i ) {
                     for ( j=0; j<Dcols; ++j ) {
                         complex2CSR_sub ( D + i * blocksize + j * lld_D * blocksize,blocksize,blocksize,lld_D,Dblock, ( * ( dims ) * i + *position ) *blocksize,
                                         ( * ( dims+1 ) * j + pcol ) *blocksize );
                         if ( Dblock.nonzeros>0 ) {
                             if ( Dmat.nonzeros==0 ) {
-                                Dmat.make ( Dblock.nrows,Dblock.ncols,Dblock.nonzeros,Dblock.pRows,Dblock.pCols,Dblock.pData );
+                                Dmat.make2 ( Dblock.nrows,Dblock.ncols,Dblock.nonzeros,Dblock.pRows,Dblock.pCols,Dblock.pData );
                             } else {
                                 Dmat.addBCSRComplex ( Dblock );
                             }
@@ -788,16 +801,17 @@ int main ( int argc, char **argv ) {
                         Dblock.clear();
                     }
                 }
+                cout << "D's converted" << endl;
                 if ( *position==0 ) {
                     Bblock.nrows=Adim;
                     Bblock.ncols=Dblocks * blocksize;
                     Bblock.allocate ( Adim, Dblocks * blocksize, 0 );
-                    Btsparse.allocate ( 0,0,0 );
+                    Btsparse.allocate(0,0,0);
                     for ( j=0; j<Dcols; ++j ) {
                         complex2CSR_sub ( B_j + j * Adim * blocksize,Adim,blocksize,Adim,Bblock,0, ( * ( dims+1 ) * j + pcol ) *blocksize );
                         if ( Bblock.nonzeros>0 ) {
                             if ( Btsparse.nonzeros==0 ) {
-                                Btsparse.make ( Bblock.nrows,Bblock.ncols,Bblock.nonzeros,Bblock.pRows,Bblock.pCols,Bblock.pData );
+                                Btsparse.make2 ( Bblock.nrows,Bblock.ncols,Bblock.nonzeros,Bblock.pRows,Bblock.pCols,Bblock.pData );
                             } else {
                                 Btsparse.addBCSRComplex ( Bblock );
                             }
@@ -808,6 +822,7 @@ int main ( int argc, char **argv ) {
 
                 }
                 blacs_barrier_ ( &ICTXT2D,"A" );
+		cout << "Before sending of blocks" << endl;
                 if ( iam!=0 ) {
                     //Each process other than root sends its Dmat to the root process.
                     MPI_Send ( & ( Dmat.nonzeros ),1, MPI_INT,0,iam,MPI_COMM_WORLD );
@@ -882,7 +897,8 @@ int main ( int argc, char **argv ) {
                     Btsparse.clear();
                     Dmat.clear();
 
-                    Csparse.writeToFile ( "Csparse.csr" );
+                    Csparse.fillSymmetric();
+		    Csparse.writeToFilePSelInv(filenameC);
                     Csparse.clear();
                     if ( filenameC != NULL )
                         free ( filenameC );
@@ -890,7 +906,13 @@ int main ( int argc, char **argv ) {
                 }
             }
 
+            
+            else 
+	      cout << "C not written to file" << endl;
+	    
             blacs_barrier_ ( &ICTXT2D,"A" );
+	    
+	    
 
             /********************** TIMING **********************/
             if ( iam == 0 )
@@ -898,6 +920,8 @@ int main ( int argc, char **argv ) {
 
             if ( iam == 0 )
                 watch.tick ( cresctime );
+	    
+	    cout << "Between timings and descriptor initialisation" << endl;
 
             //AB_sol will contain the solution of A*X=B, distributed across the process rows. Processes in the same process row possess the same part of AB_sol
             DESCAB_sol= ( int* ) malloc ( DLEN_ * sizeof ( int ) );
@@ -905,14 +929,20 @@ int main ( int argc, char **argv ) {
                 printf ( "unable to allocate memory for descriptor for AB_sol\n" );
                 return -1;
             }
+            
+            cout << "DESCAB_sol initialised" << endl;
             //AB_sol (Adim, Ddim) is distributed across all processes in ICTXT2D starting from process (0,0) into blocks of size (Adim, blocksize)
             descinit_ ( DESCAB_sol, &Adim, &Ddim, &Adim, &blocksize, &i_zero, &i_zero, &ICTXT2D, &Adim, &info );
             if ( info!=0 ) {
                 printf ( "Descriptor of matrix C returns info: %d\n",info );
                 return info;
             }
+            
+            cout << "allocating for AB_sol" << endl;
 
             AB_sol= ( complex< double > * ) calloc ( Adim * s_B_j,sizeof ( complex< double > ) );
+	    
+	    cout << "allocation for AB_sol done" << endl;
 
             // Each process calculates the Schur complement of the part of D at its disposal. (see src/schur.cpp)
             // The solution of A * X = B_j is stored in AB_sol (= A^-1 * B_j)
@@ -1192,7 +1222,7 @@ int main ( int argc, char **argv ) {
             }
 
             if ( InvD_T_Block !=NULL ) {
-                free ( InvD_T_Block );
+                delete [] InvD_T_Block ;
                 InvD_T_Block=NULL;
             }
         }

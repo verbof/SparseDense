@@ -27,9 +27,15 @@ CSRcomplex::CSRcomplex()
 void
 CSRcomplex::clear()
 {
-    delete[] pData;
-    delete[] pRows;
-    delete[] pCols;
+    if(pData != NULL)
+        delete [] pData;
+    pData = NULL;
+    if(pRows != NULL)
+        delete [] pRows;
+    pRows = NULL;
+    if(pCols != NULL)
+        delete [] pCols;
+    pCols = NULL;
 }
 
 
@@ -66,7 +72,22 @@ CSRcomplex::make(int n, int m, int nzeros, int* prows,
     name             = "UnNamed";
 }
 
-
+void CSRcomplex::make2(int n, int m, int nzeros, int* prows,
+                      int* pcols, complex< double >* pdata)
+{
+    // this is used to set the sparse structure mainly; here the pointer
+    // to the values, pdata, is not necessarily ready (initialized)
+    nrows            = n;
+    ncols            = m;
+    nonzeros         = nzeros;
+    pRows            = new int[n+1];
+    pCols            = new int[nzeros];
+    pData            = new complex< double >[nzeros];
+    memcpy(pRows,prows,(n+1) * sizeof(int));
+    memcpy(pCols,pcols,nzeros * sizeof(int));
+    memcpy(pData,pdata,nzeros * sizeof(complex< double >));
+    name             = "UnNamed";
+}
 
 
 void CSRcomplex::sortColumns()
@@ -272,7 +293,45 @@ void CSRcomplex::writeToFile(const char* filename, ios::openmode mode) const
     fout.close();
 }
 
+void CSRcomplex::writeToFilePSelInv(const char* filename, ios::openmode mode) const
+{
+    cout << "\t---> Dumping matrix to file: " << filename << endl;
 
+    fstream fout(filename, ios::out | mode);
+    if (!fout.is_open())
+    {
+        cout << "could not open file " << filename << " for output\n";
+        return;
+    }
+
+
+    fout << nrows << " " << ncols << " " << nonzeros << " " << "0" << endl;
+
+    int i;
+    for (i = 0; i < nrows+1; i++)
+    {
+        fout << pRows[i]+1 << " ";
+    }
+
+    fout << endl;
+
+    for (i = 0; i < nonzeros; i++)
+    {
+        fout << pCols[i]+1 << " ";
+    }
+
+    fout << endl;
+
+    fout.setf(ios::scientific, ios::floatfield);
+    fout.precision(16);
+
+    for (i = 0; i < nonzeros; i++)
+    {
+        fout << pData[i] << "\n";
+    }
+
+    fout.close();
+}
 
 void CSRcomplex::loadFromFile(const char* file, ios::openmode mode)
 {
@@ -389,6 +448,91 @@ void CSRcomplex::savedebug(const char* filename) const
       }
       fout << "\n";
   }
+}
+
+
+// This method fills the symmetric sparse structure
+// so that the matrix is not any more in upper or lower
+// triangular form.
+void CSRcomplex::fillSymmetric()
+{
+  int nonzeros;
+  int  n        = this->nrows;
+  int* prows    = this->pRows;
+  int* pcols    = this->pCols;
+  complex< double >* pdata = this->pData;
+
+  vector<vector< complex< double > > > vA(n);
+  vector<vector<int> >    vcols(n);
+
+  int i;
+  for (i = 0; i < n; i++)
+  {
+    for (int index = prows[i]; index < prows[i+1]; index++)
+    {
+      int j = pcols[index];
+
+      vcols[i].push_back(j);
+      complex< double > a_ij = pdata[index];
+      vA[i].push_back(a_ij);
+
+      // this is the j column in the i-th row; now we need to find the 
+      // i-th column in the j-th row; If it is there we do nothing; if
+      // not then we need to add it 
+      if (i != j)
+      {
+        bool found = false;
+        for (int k = prows[j]; k < prows[j+1]; k++)
+        {
+          int col = pcols[k];
+          if (col == i)
+          {
+            found = true;
+            break;
+          }
+        }
+
+        if ( !found )
+        {
+          //cout << "The matrix is not Structurally Symmetric\n";
+          vcols[j].push_back(i);
+          vA[j].push_back(a_ij);
+        }
+      }
+    }
+  }
+
+  int* ia = new int[n+1];
+  ia[0]   = 0;
+  for (i = 0; i < n; i++)
+  {
+    ia[i+1] = ia[i] + vcols[i].size(); 
+  }
+
+  nonzeros   = ia[n];
+  int* ja    = new int[nonzeros];
+  complex< double > * a  = new complex< double >[nonzeros];
+
+  for (i = 0; i < n; i++)
+  {
+    int index = ia[i];
+    int entries = vcols[i].size();
+    for (int j = 0; j < entries; j++)
+    {
+      ja[index + j] = vcols[i][j];
+      a[index + j]  = vA[i][j];
+    }
+
+    if (entries > 1)
+      heapsort(entries, &ja[index], &a[index]);
+  }
+
+  delete[] pRows;
+  delete[] pCols;
+  delete[] pData;
+
+  make(n, n, nonzeros, ia, ja, a);
+  matrixType = NORMAL;
 }
 
 void CSRcomplex::reduceSymmetric()

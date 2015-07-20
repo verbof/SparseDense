@@ -301,7 +301,7 @@ void printdense_complex ( int m, int n, complex< double > *mat, char *filename )
     for ( i=0; i<m; ++i ) {
         //fprintf ( fd,"[\t" );
         for ( j=0; j<n; ++j ) {
-            fprintf ( fd,"%12.8g + i%12.8g\t",(mat+i*n +j)->real(),(mat+i*n +j)->imag());
+            fprintf ( fd,"%.16e + i%.16e\t",(mat+i*n +j)->real(),(mat+i*n +j)->imag());
         }
         fprintf ( fd,"\n" );
     }
@@ -433,7 +433,7 @@ void complex2CSR_sub ( complex< double > *mat, int m, int n, int lld_mat, CSRcom
     }
     pdata= new complex< double >[nnz];
     if ( pdata == NULL ) {
-        printf ( "unable to allocate memory for pdata in dense2CSR (required: %ld bytes)\n", nnz * sizeof ( double ) );
+        printf ( "unable to allocate memory for pdata in dense2CSR (required: %ld bytes)\n", nnz * sizeof ( complex< double >) );
         exit ( 1 );
     }
 
@@ -724,7 +724,7 @@ void CSRcomplex::addBCSRComplex ( CSRcomplex& B ) {
         }
         ABprows[i+1]=nonzeroes;
     }
-    complex< double >* pdata = new complex< double >[nonzeroes];
+    complex< double >* pdata = new complex< double > [nonzeroes];
     int*    pcols = new int[nonzeroes];
 
     if ( ABprows[nrows]!=nonzeroes )
@@ -733,9 +733,15 @@ void CSRcomplex::addBCSRComplex ( CSRcomplex& B ) {
     memcpy ( pcols, &ABcols[0], nonzeroes*sizeof ( int ) );
     memcpy ( pdata, &ABdata[0], nonzeroes*sizeof ( complex< double > ) );
 
-    delete[] pRows;
-    delete[] pCols;
-    delete[] pData;
+    if(pData != NULL)
+        delete [] pData;
+    pData = NULL;
+    if(pRows != NULL)
+        delete [] pRows;
+    pRows = NULL;
+    if(pCols != NULL)
+        delete [] pCols;
+    pCols = NULL;
 
     make ( B.nrows, B.ncols, nonzeroes, ABprows, pcols, pdata );
 }

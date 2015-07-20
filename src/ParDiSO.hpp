@@ -371,7 +371,9 @@ private:
 public:
   ~ParDiSO();
   ParDiSO();
-  ParDiSO(int pardiso_mtype, int pardiso_msglvl);
+  
+  
+  void Initial(int pardiso_mtype, int pardiso_msglvl);
   
   double memoryAllocated() const;
   void clear();

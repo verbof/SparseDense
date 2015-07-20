@@ -32,11 +32,14 @@ public:
     void  multiplyT(complex<double>* x, complex<double>* y);
     void  sortColumns();
     void  make(int n, int m, int nzeros, int* prows, int* pcols, complex<double>* pdata);
+    void  make2(int n, int m, int nzeros, int* prows, int* pcols, complex< double >* pdata);
     void  writeToFile(const char* filename, ios::openmode mode = ios::out) const;
+    void  writeToFilePSelInv(const char* filename, ios::openmode mode = ios::out) const;
     void  loadFromFile(const char* file, ios::openmode mode = ios::out);
     void  savedebug(const char* filename) const;
     void  clear();
     void  addBCSRComplex ( CSRcomplex& B ) ;
+    void  fillSymmetric();
     void  reduceSymmetric();
     void  changeCols ( int cols ) ;
     void  changeRows ( int rows ) ;

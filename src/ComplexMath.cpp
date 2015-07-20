@@ -46,7 +46,7 @@ void make3DLaplace_complex(int nx, int ny, int nz, CSRcomplex& L, double imag)
    int* mesh;
    int* rowind;
    int* colptr;
-   complex< double >* nzvals;
+   complex< double > *nzvals;
    int nnz_full;
    double dval;
 
@@ -80,9 +80,13 @@ void make3DLaplace_complex(int nx, int ny, int nz, CSRcomplex& L, double imag)
    //printf("%d  %d\n", nnodes, nnz);
    nnz_full = nnz;
    
-   colptr  = (int*)malloc((nnodes+1)*sizeof(int));
+   /*colptr  = (int*)malloc((nnodes+1)*sizeof(int));
    rowind  = (int*)malloc(nnz_full*sizeof(int));
-   nzvals  = (complex< double >*)malloc(nnz_full*sizeof(complex< double >));
+   nzvals  = (complex< double >*)malloc(nnz_full*sizeof(complex< double >));*/
+   
+   colptr =  new int [nnodes+1];
+   rowind =  new int [nnz_full];
+   nzvals =  new complex< double > [nnz_full];
 
    colptr(1) = 1;
    count = 0;
@@ -154,7 +158,7 @@ void make3DLaplace_complex(int nx, int ny, int nz, CSRcomplex& L, double imag)
     //rowind = ja, nzvals = a  nnodes colptr(nnodes) colptr(j) = ia, 
 
 
-   L.allocate(nnodes, nnodes, colptr(nnodes));
+   //L.allocate(nnodes, nnodes, colptr(nnodes));
    L.make(nnodes, nnodes, colptr(nnodes), colptr, rowind, nzvals);
 
    /*
@@ -173,9 +177,9 @@ void make3DLaplace_complex(int nx, int ny, int nz, CSRcomplex& L, double imag)
    */
 
    free(mesh);
-   free(colptr); 
+   /*free(colptr); 
    free(rowind); 
-   free(nzvals); 
+   free(nzvals); */
 
    cout << "- Done!" << endl;
 

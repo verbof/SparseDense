@@ -137,7 +137,7 @@ ParDiSO::ParDiSO()
 
 
 
-ParDiSO::ParDiSO(int pardiso_mtype, int pardiso_msglvl)
+void ParDiSO::Initial(int pardiso_mtype, int pardiso_msglvl)
 {
   // --------------------------------------------------------------------
   // ..  Setup ParDiSO control parameters und initialize the solvers     
@@ -797,7 +797,7 @@ void ParDiSO::findInverseOfA(CSRcomplex& A)
                 perm,
                 &nrhs,
                 &iparm[1],
-                &msglvl,
+                &i_one,
                 &zdum,
                 &zdum,
                 &error,

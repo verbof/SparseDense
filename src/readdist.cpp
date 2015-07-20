@@ -31,8 +31,8 @@ void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i,
       genOnes(Drows*blocksize,Dcols*blocksize, 1.0/Ddim, Dmat);
 
 
-    genAlmostOnes(Adim,   s_B_j, 1.0/Adim, B_j);
-    genAlmostOnes(s_BT_i, Adim,  1.0/Adim, BT_i);
+    genOnes(Adim,   s_B_j, (double) 1.0/Adim, B_j);
+    genOnes(s_BT_i, Adim,  (double) 1.0/Adim, BT_i);
 
     *size_BT_i = s_BT_i;
     *size_B_j  = s_B_j;
@@ -55,11 +55,11 @@ void generate_BD_complex(complex< double > * Dmat, complex< double >* BT_i, comp
 
     if (position[0] == position[1])
     {
-        genComplexOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), (double) 1/Ddim, Dmat);
-        genDiagonalDComplex(Dcols*blocksize, (double)Ddim, 1.0, Dmat);
+        genComplexOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), (double) 0.0, Dmat);
+        genDiagonalDComplex(Dcols*blocksize, (double)Ddim, 0.0, Dmat);
     }
     else 
-      genComplexOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), (double) 1/Ddim, Dmat);
+      genComplexOnes(Drows*blocksize,Dcols*blocksize, (double) 1/(Ddim), (double) 0.0, Dmat);
 
     /*if (position[0] == dims[0]-1) // the processor belongs to the last row of the grid...
     {
@@ -83,8 +83,8 @@ void generate_BD_complex(complex< double > * Dmat, complex< double >* BT_i, comp
         s_B_j          -= exceeding_cols;
     }*/
 
-    genComplexOnes(Adim,   s_B_j, (double) 1/Ddim, (double) 1/Ddim, B_j);
-    genComplexOnes(s_BT_i, Adim,  (double) 1/Ddim, (double) 1/Ddim, BT_i);
+    genComplexOnes(Adim,   s_B_j, (double) 1.0/Adim, (double) 0.0, B_j);
+    genComplexOnes(s_BT_i, Adim,  (double) 1.0/Adim, (double) 0.0, BT_i);
 
     *size_BT_i = s_BT_i;
     *size_B_j  = s_B_j;
