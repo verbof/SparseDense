@@ -11,7 +11,7 @@
 #include "smat.h"
 #include "timing.hpp"
 #include <cassert>
-//#include <mkl/mkl_pblas.h>
+//#include <mkl_pblas.h>
 //#include <mkl/mkl_blacs.h>
 //#include <mpich-x86_64/mpi.h>
 
@@ -27,11 +27,16 @@ extern "C" {
     void blacs_pcoord_ ( int *ConTxt, int *nodenum, int *prow, int *pcol );
     void descinit_ ( int*, int*, int*, int*, int*, int*, int*, int*, int*, int* );
     void pdpotrf_ ( char *uplo, int *n, double *a, int *ia, int *ja, int *desca, int *info );
+    void pdgetrf_ (int *m, int *n, double *a, int *ia, int *ja, int *desca, int *ipiv, int *info);
     void pzpotrf_ (char *uplo, int *n, complex< double > *a, int *ia, int *ja, int *desca, int *info);
     void pdpotri_ ( char *uplo, int *n, double *a, int *ia, int *ja, int *desca, int *info );
+    void pdgetri_ (int *n, double *a, int *ia, int *ja, int *desca, int *ipiv, double *work, int *lwork, int *iwork, int *liwork, int *info);
+
     void pzpotri_ ( char *uplo, int *n, complex< double > *a, int *ia, int *ja, int *desca, int *info );
     void pdsymm_ ( char *side, char *uplo, int *m, int *n, double *alpha, double *a, int *ia, int *ja, int *desca, double *b, int *ib, int *jb,
                    int *descb, double *beta, double *c, int *ic, int *jc, int *descc );
+    void pdgemm_ ( char *transa, char *transb, int *m, int *n, int *k, double *alpha, double *a, int *ia, int *ja, int *desca, double *b, int *ib, 
+		   int *jb, int *descb, double *beta, double *c, int *ic, int *jc, int *descc );
     void pzsymm_ ( char *side, char *uplo, int *m, int *n, complex< double > *alpha, complex< double > *a, int *ia, int *ja, int *desca,
                    complex< double > *b, int *ib, int *jb, int *descb, complex< double > *beta, complex< double > *c, int *ic, int *jc, int *descc );
     void pddot_ ( int *n, double *dot, double *x, int *ix, int *jx, int *descx, int *incx, double *y, int *iy, int *jy, int *descy, int *incy );
@@ -41,6 +46,8 @@ extern "C" {
     void dgerv2d_ ( int *ConTxt, int *m, int *n, double *A, int *lda, int *rsrc, int *csrc );
     void zgesd2d_ ( int *ConTxt, int *m, int *n, complex< double > *A, int *lda, int *rdest, int *cdest );
     void zgerv2d_ ( int *ConTxt, int *m, int *n, complex< double > *A, int *lda, int *rsrc, int *csrc );
+    void dgsum2d_ ( int *ConTxt, char *scope, char *top, int *m, int *n, double *A, int *lda, int *rdest, int *cdest);
+
 }
 
 void printDenseDouble ( const char* filename, ios::openmode mode, int m, int n, double* dense );
@@ -226,6 +233,7 @@ int main ( int argc, char **argv ) {
         if(!complex_bool) {
 
             double *D, *AB_sol, *InvD_T_Block, *XSrow;
+	    int *perm;
             double* BT_i;
             double* B_j;
             pardiso_var.Initial(-2,0);
@@ -239,6 +247,11 @@ int main ( int argc, char **argv ) {
             D = ( double* ) calloc ( Drows * blocksize * Dcols * blocksize,sizeof ( double ) );
             if ( D==NULL ) {
                 printf ( "unable to allocate memory for Matrix D  (required: %ld bytes)\n", Drows * blocksize * Dcols * blocksize * sizeof ( double ) );
+                return EXIT_FAILURE;
+            }
+            perm = ( int* ) calloc ( Drows + blocksize ,sizeof ( int ) );
+            if ( D==NULL ) {
+                printf ( "unable to allocate memory for Matrix D  (required: %ld bytes)\n", (Drows + blocksize) * sizeof ( int ) );
                 return EXIT_FAILURE;
             }
 
@@ -488,7 +501,7 @@ int main ( int argc, char **argv ) {
                 watch.tick ( facsctime );
 
             //The Schur complement is factorised (by ScaLAPACK)
-            pdpotrf_ ( "U",&Ddim,D,&i_one,&i_one,DESCD,&info );
+            pdgetrf_ ( &Ddim,&Ddim,D,&i_one,&i_one,DESCD,perm,&info );
             if ( info != 0 ) {
                 printf ( "Cholesky decomposition of D was unsuccessful, error returned: %d\n",info );
                 return -1;
@@ -503,14 +516,22 @@ int main ( int argc, char **argv ) {
             if ( iam == 0 )
                 watch.tick ( invsctime );
 
-            //The Schur complement is inverteded (by ScaLAPACK)
-            pdpotri_ ( "U",&Ddim,D,&i_one,&i_one,DESCD,&info );
+            //The Schur complement is inverted (by ScaLAPACK)
+	    int lwork=Ddim*blocksize;
+	    int liwork=Ddim+blocksize;
+	    double *work=(double *) calloc(lwork,sizeof(double));
+	    int *iwork=(int *) calloc(liwork,sizeof(int));
+	    
+            pdgetri_ ( &Ddim,D,&i_one,&i_one,DESCD,perm,work,&lwork,iwork,&liwork,&info );
             if ( info != 0 ) {
                 printf ( "Inverse of D was unsuccessful, error returned: %d\n",info );
                 return -1;
             }
 
             blacs_barrier_ ( &ICTXT2D,"A" );
+	    
+	    free(work);
+	    free(iwork);
 
             /********************** TIMING **********************/
             if ( iam == 0 )
@@ -531,10 +552,11 @@ int main ( int argc, char **argv ) {
             if ( *position == pcol ) {
                 for ( i=0; i<Ddim; ++i ) {
                     if ( pcol == ( i/blocksize ) % *dims ) {
-                        int Dpos = i%blocksize + ( ( i/blocksize ) / *dims ) * blocksize ;
-                        * ( InvD_T_Block + Adim +i ) = * ( D + Dpos + lld_D * Dpos );
+                        int Dpos = i%blocksize + ( ( i/blocksize ) / *dims ) * blocksize;
+                        * ( InvD_T_Block + Adim + perm[Dpos] -1 ) = * ( D + Dpos + lld_D * Dpos );
                     }
                 }
+               /* 
                 for ( i=0,j=0; i<Dblocks; ++i,++j ) {
                     if ( j==*dims )
                         j=0;
@@ -545,7 +567,10 @@ int main ( int argc, char **argv ) {
                         dgerv2d_ ( &ICTXT2D,&blocksize,&i_one,InvD_T_Block + Adim + blocksize*i,&blocksize,&j,&j );
                     }
                 }
+                */
             }
+            int DiagD_elements=Dblocks*blocksize;
+            dgsum2d_(&ICTXT2D,"ALL","1-tree", &DiagD_elements,&i_one,InvD_T_Block + Adim,&i_one,&i_zero,&i_zero);
 
             blacs_barrier_ ( &ICTXT2D,"A" );
             /********************** TIMING **********************/
@@ -632,7 +657,8 @@ int main ( int argc, char **argv ) {
 
             //Calculating diagonal elements 1 by 1 of the (0,0)-block of C^-1.
             for ( i=1; i<=Adim; ++i ) {
-                pdsymm_ ( "R","U",&i_one,&Ddim,&d_one,D,&i_one,&i_one,DESCD,AB_sol,&i,&i_one,DESCAB_sol,&d_zero,XSrow,&i_one,&i_one,DESCXSROW );
+                //pdsymm_ ( "R","U",&i_one,&Ddim,&d_one,D,&i_one,&i_one,DESCD,AB_sol,&i,&i_one,DESCAB_sol,&d_zero,XSrow,&i_one,&i_one,DESCXSROW );
+		pdgemm_ ( "N","N",&i_one,&Ddim,&Ddim,&d_one,AB_sol,&i,&i_one,DESCAB_sol,D,&i_one,&i_one,DESCD,&d_zero,XSrow,&i_one,&i_one,DESCXSROW );
                 pddot_ ( &Ddim,InvD_T_Block+i-1,AB_sol,&i,&i_one,DESCAB_sol,&Adim,XSrow,&i_one,&i_one,DESCXSROW,&i_one );
             }
 
@@ -722,7 +748,7 @@ int main ( int argc, char **argv ) {
             complex< double > *D, *AB_sol, *InvD_T_Block, *XSrow, * BT_i, * B_j;
 
             CSRcomplex Asparse, Btsparse;
-            pardiso_var.Initial(-4,0);
+            pardiso_var.Initial(6,0);
 	    
 	    cout << "Dimension of complex A and D: " << Adim << " & " << Ddim << endl;
 

@@ -25,7 +25,11 @@ void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i,
     if (position[0] == position[1])
     {
         genOnes(Drows*blocksize,Dcols*blocksize, 1.0/Ddim, Dmat);
-        genDiagonalD(Dcols*blocksize, (double)Ddim, Dmat);
+        //genDiagonalD(Dcols*blocksize, (double)1.0, Dmat);
+	double *values=new double [Dcols*blocksize];
+	for (int i=0;i<Dcols*blocksize;++i)
+	  values[i]=i+1;
+	genDiagonalV(Dcols*blocksize, values, Dmat);
     }
     else 
       genOnes(Drows*blocksize,Dcols*blocksize, 1.0/Ddim, Dmat);
