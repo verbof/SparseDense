@@ -517,8 +517,8 @@ int main ( int argc, char **argv ) {
                 watch.tick ( invsctime );
 
             //The Schur complement is inverted (by ScaLAPACK)
-	    int lwork=Ddim*blocksize;
-	    int liwork=Ddim+blocksize;
+	    int lwork=Drows*blocksize*blocksize;
+	    int liwork=(Dcols +1)* blocksize;
 	    double *work=(double *) calloc(lwork,sizeof(double));
 	    int *iwork=(int *) calloc(liwork,sizeof(int));
 	    
@@ -529,6 +529,10 @@ int main ( int argc, char **argv ) {
             }
 
             blacs_barrier_ ( &ICTXT2D,"A" );
+	    /*if (iam==0){
+	      cout << "Minimum value for lwork in process " << iam << ": " << work[0] << endl;
+	      cout << "Minimum value for ilwork in process " << iam << ": " << iwork[0] << endl;
+	    }*/
 	    
 	    free(work);
 	    free(iwork);
