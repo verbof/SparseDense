@@ -294,6 +294,10 @@ void CSRdouble::writeToFile(const char* filename, ios::openmode mode) const
     }
     else
     {
+        cout << "blablabla: " << nrows << "\n";
+        cout << "blablabla: " << ncols << "\n";
+        cout << "blablabla: " <<  nonzeros << "\n";
+
         fout << nrows << "\n";
         fout << ncols << "\n";
         fout << nonzeros << "\n";
@@ -361,12 +365,6 @@ void CSRdouble::writeToFilePSelInv(const char* filename, ios::openmode mode) con
 
     fout.close();
 }
-
-
-
-
-
-
 
 
 void CSRdouble::loadFromFile(const char* file, ios::openmode mode)
@@ -558,8 +556,6 @@ void CSRdouble::loadFromFileSym(const char* file)
 
 }
 
-
-
 void CSRdouble::loadFromFileCOO(const char* file)
 {
     fstream fin(file, ios::in);
@@ -588,23 +584,27 @@ void CSRdouble::loadFromFileCOO(const char* file)
    int index;
    vector<vector<int> > vvcols(nrows+1);
    vector<vector<double> > vvdata(nrows+1);
+
    for (index = 0; index < nonzeros; index++)
    {
-       fin >> i >> j >> aij;
-       vvcols[i].push_back(j);
-       vvdata[i].push_back(aij);
+       fin >> j >> i >> aij;
+       vvcols[i-1].push_back(j-1);
+       vvdata[i-1].push_back(aij);
    }
 
+   /*
    if (vvcols[0].empty())
      i0 = 1;
    else
      i0 = 0;
-   
+   */
+
    fin.close();
 
    index = 0;
-   pRows[0] = 0;
-   for (i = i0; i < nrows+i0; i++)
+   //pRows[0] = 0;
+
+   for (i = 0 /*i0*/; i < nrows/*+i0*/; i++)
    {
      int entries = vvcols[i].size();
      heapsort(entries, &vvcols[i][0], &vvdata[i][0]);
@@ -613,20 +613,23 @@ void CSRdouble::loadFromFileCOO(const char* file)
      memcpy(&pCols[index], &vvcols[i][0], entries*sizeof(int));
 
      index += entries;
-     pRows[i+1-i0] = index;
+     pRows[i+1/*-i0*/] = index;
    }
 
 
 
-   for (i = 0; i < nrows+1; i++)
+   /*
+   for (i = i0; i < nrows+1; i++)
    {
        pRows[i] -= i0;
    }
 
-   for (i = 0; i < nonzeros; i++)
+   for (i = i0; i < nonzeros; i++)
    {
        pCols[i] -= i0;
    }
+   */
+
 }
 
 

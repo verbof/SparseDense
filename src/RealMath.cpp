@@ -20,11 +20,11 @@
 
 void solveSystem(CSRdouble& A, double* X, double* B, int pardiso_mtype, int number_of_rhs)
 {
-    /*cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" << endl;
+    cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" << endl;
     cout << "@@@ S O L V I N G     A    L I N E A R    S Y S T E M  @@@" << endl;
     cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" << endl;
 
-    cout << "*** G e n e r a t i n g    # " << number_of_rhs << "   r h s *** " << endl;*/
+    cout << "*** G e n e r a t i n g    # " << number_of_rhs << "   r h s *** " << endl;
 
     // initialize pardiso and forward to it minimum number of necessary parameters
     /*int pardiso_message_level = 0;
@@ -41,7 +41,7 @@ void solveSystem(CSRdouble& A, double* X, double* B, int pardiso_mtype, int numb
     if(var != NULL)
         sscanf( var, "%d", &number_of_processors );
     else {
-        printf("Set environment OMP_NUM_THREADS to 1");
+        printf("Set environment OMP_NUM_THREADS to 1. \n");
         exit(1);
     }
 
@@ -960,7 +960,7 @@ void makeDiagonalPerturbV(int n, double* val, double pert, CSRdouble& DP)
 void genZeros(int m, int n, double* zeros)
 {
 
-    for(int j = 0; j < m*n; j++)
+    for(size_t j = 0; j < m*n; j++)
     {
         zeros[j] = 0.0;
     }
@@ -971,20 +971,21 @@ void genZeros(int m, int n, double* zeros)
 void genAlmostOnes(int m, int n, double value, double* ones)
 {
 
-    for (int j = 0; j < m; j++)
+    for (size_t j = 0; j < m; j++)
     {
-        for (int k = 0; k < n; k++)
+        for (size_t k = 0; k < n; k++)
         {
-            ones[j+k*m] = 0.0 + value*(j+k);
+            ones[j+k*(size_t)m] = 0.0 + value*(j+k+1);
         }
     }
 
 }
 
+
 void genOnes(int m, int n, double value, double* ones)
 {
 
-    for(int j = 0; j < m*n; j++)
+    for (size_t j = 0; j < m*n; j++)
     {
         ones[j] = 0.0 + value;
     }
@@ -1000,14 +1001,14 @@ void makeOnes(int m, int n, double value, CSRdouble& E)
     double* pdata = new double[N];
     prows[0]      = 0;
 
-    for (int i = 0; i < m; i++)
+    for (size_t i = 0; i < m; i++)
     {
-        prows[i+1]  = prows[i] + n;
+        prows[i+1] = prows[i] + n;
 
-        for (int k = 0; k < n; k++)
+        for (size_t k = 0; k < n; k++)
         {
-            pcols[i*n + k] = k;
-            pdata[i*n + k] = 0.0 + value;
+            pcols[i*(size_t)n + k] = k;
+            pdata[i*(size_t)n + k] = 0.0 + value;
         }
     }
 
@@ -1017,7 +1018,7 @@ void makeOnes(int m, int n, double value, CSRdouble& E)
 
 void genDiagonalV(int n, double* value, double* diag)
 {
-    for (int k = 0; k < n; k++)
+    for (size_t k = 0; k < n; k++)
     {
         diag[k*n + k] = value[k];
     }
@@ -1026,7 +1027,7 @@ void genDiagonalV(int n, double* value, double* diag)
 
 void genDiagonalD(int n, double d, double* diag)
 {
-    for (int k = 0; k < n; k++)
+    for (size_t k = 0; k < n; k++)
     {
         diag[k*n + k] = 0.0 + d;
     }

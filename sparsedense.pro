@@ -3,7 +3,7 @@ LANGUAGE	= C++
 
 LIBS	        = -L${HOME}/Libraries/linuxAMD64 -lpardiso500-GNU481-X86-64
 LIBS           += -L${MKLROOT}/lib/intel64/                         \
-                  -lmkl_lapack95_lp64 -lmkl_gf_lp64 -lmkl_sequential -lmkl_core                     \ 
+                  -lmkl_lapack95_lp64 -lmkl_gf_lp64 -lmkl_sequential -lmkl_core                        \ 
                   -lgfortran -lgomp ${INTEL_PATH}.${INTEL_MINOR_VERSION}/compiler/lib/intel64/libirc.a
 
 CCX             = /opt/cray/craype/2.2.1/bin/CC

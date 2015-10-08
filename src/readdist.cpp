@@ -20,26 +20,39 @@ void generate_BD(double* Dmat, /*CSRdouble& BT_i, CSRdouble& B_j*/ double* BT_i,
     int s_BT_i = blocksize * Drows;
     int s_B_j  = blocksize * Dcols;
 
+    /* Generation of D */
+
     if (position[0] == position[1])
     {
-        genOnes(Drows*blocksize,Dcols*blocksize, 1.0/Ddim, Dmat);
-        genDiagonalD(Dcols*blocksize, (double)Ddim, Dmat);
+        cout << "Process " << iam << " generating D..." << endl;
+        genOnes(Drows*blocksize, Dcols*blocksize, 1.0/Ddim, Dmat);      // Fill D with 1/size(D,1)
+        genDiagonalD(Dcols*blocksize, (double)Ddim, Dmat);              // Fill the diagonal of D with size(D,1)
+        cout << "Process " << iam << " successfully generated D..." << endl;
     }
     else 
-      genOnes(Drows*blocksize,Dcols*blocksize, 1.0/Ddim, Dmat);
+      genOnes(Drows*blocksize, Dcols*blocksize, 1.0/Ddim, Dmat);
+    
+    /* --------------- */
 
 
-    genAlmostOnes(Adim,   s_B_j, 1.0/Adim, B_j);
-    genAlmostOnes(s_BT_i, Adim,  1.0/Adim, BT_i);
+
+    /* WARNING!!! ACHTUNG!!! ATTENZIONE!!! */
+    /* Generation of B */
+
+    cout << "Process " << iam << " generating B..." << endl;
+    //genAlmostOnes(Adim,   s_B_j, 0.0, B_j);
+    genAlmostOnes(Adim,   s_B_j, 1.0/(Adim*Adim), B_j);                 // B[i,j] = (i+j+1) / size(A,1)^2
+    cout << "Process " << iam << " successfully generated B..." << endl;
+
+    cout << "Process " << iam << " generating B^T..." << endl;
+    //genAlmostOnes(s_BT_i, Adim,  0.0, BT_i);
+    genAlmostOnes(s_BT_i, Adim,  1.0/(Adim*Adim), BT_i);                // B[i,j] = (i+j+1) / size(A,1)^2
+    cout << "Process " << iam << " successfully generated B^T..." << endl;
+
+    /* --------------- */
 
     *size_BT_i = s_BT_i;
     *size_B_j  = s_B_j;
-
-    //for (int k = 0; k < Adim*s_B_j; k++) cout << b_j[k] << "\t";
-
-    //dense2CSR(b_j,  Adim,   s_B_j, B_j);
-    //dense2CSR(bt_i, s_BT_i, Adim,  BT_i);
-
 
     printf("Process %d just generated B & D! \n", iam);
 

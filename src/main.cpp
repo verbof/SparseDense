@@ -61,6 +61,7 @@ int main ( int argc, char **argv ) {
     int info, i, j, pcol;
     double *D, *AB_sol, *InvD_T_Block, *XSrow;
     int *DESCD, *DESCAB_sol, *DESCXSROW;
+    bool readAFromFile = false;
     //CSRdouble BT_i, B_j;
     double* BT_i;
     double* B_j;
@@ -69,21 +70,38 @@ int main ( int argc, char **argv ) {
     int nx, ny, nz;
     CSRdouble Asparse, Btsparse;
 
-    // needed args: nx, ny, nz, Ddim, blocksize; 
-    // optional: C.csr - if provided, the output file is written.
-    if (argc < 6)
+    if (argc < 6) 
     {
+        // needed args: nx, ny, nz, Ddim, blocksize; 
+        // optional: C.csr - if provided, the output file is written.
         cout << "Too few arguments." << endl;
-        cout << "Usage: " << argv[0] << " nx ny nz Ddim blocksize C.csr" << endl;
+        cout << "Usage: " << argv[0] << "   nx      ny     nz  Ddim blocksize [C.csr]" << endl;
+        cout << "Usage: " << argv[0] << " -fileA filename Adim Ddim blocksize [C.csr]" << endl;
         exit(-1);
     }
 
+    if (strcmp(argv[1], "-fileA") == 0)   // if (argv[1] == "-fileA")
+    {
+        readAFromFile = true;
 
-    /*  what to do with input args...
-        Adim      = atoi(argv[1])*atoi(argv[2])*atoi(argv[3]);
-        Ddim      = atoi(argv[4]);
-        blocksize = atoi(argv[5]);
-    */
+        filenameA = new char[250];
+        strcpy(filenameA, argv[2]);
+
+        Adim = atoi(argv[3]);
+        
+    }
+    else
+    {
+        nx   = atoi(argv[1]);
+        ny   = atoi(argv[2]);
+        nz   = atoi(argv[3]);
+        Adim = nx * ny * nz;
+    }
+
+    Ddim      = atoi(argv[4]);
+    blocksize = atoi(argv[5]);
+
+
 
     //printf("Adim=%d, Ddim=%d, blocksize=%d *** %s", Adim, Ddim, blocksize, outputc);
     //exit(-123);
@@ -146,12 +164,7 @@ int main ( int argc, char **argv ) {
         }
 
 
-        nx        = atoi(argv[1]);
-        ny        = atoi(argv[2]);
-        nz        = atoi(argv[3]);
-        Adim      = nx*ny*nz;
-        Ddim      = atoi(argv[4]);
-        blocksize = atoi(argv[5]);
+        
 
         /*
         //Filenames, dimensions of all matrices and other important variables are read in as global variables (see src/readinput.cpp)
@@ -225,7 +238,7 @@ int main ( int argc, char **argv ) {
         //read_in_BD ( DESCD,D, BT_i, B_j, Btsparse ) ;
         if ( iam == 0 )
             cout << "Generating A, B and D... \n" << endl;
-        generate_BD ( D, BT_i, B_j, &s_BT_i, &s_B_j );
+        generate_BD(D, BT_i, B_j, &s_BT_i, &s_B_j);
 
         cout << "- B, D generated." << endl;
 
@@ -236,23 +249,32 @@ int main ( int argc, char **argv ) {
         //cout << "nnz(A) = " << Asparse.nonzeros << endl;
         //Asparse.loadFromFileSym("/users/drosos/simple/matrices/NornePrimaryJacobian.csr");
 
-        make3DLaplace(nx, ny, nz, Asparse);
-        cout << "A is Laplacian" << endl;
-        //Asparse.reduceSymmetric();
-        shiftIndices ( Asparse, -1 );
+        if (readAFromFile)
+        {
+            Asparse.loadFromFile(filenameA);
+            cout << "A loaded from file" << endl;
+            //Asparse.reduceSymmetric();
+        }
+        else
+        {
+            make3DLaplace(nx, ny, nz, Asparse);
+            cout << "A is Laplacian" << endl;
+            shiftIndices(Asparse, -1);
+        }
         cout << "- A generated." << endl;
         Asparse.matrixType = SYMMETRIC;
 
-        // if (iam == 0) Asparse.writeToFile("A_debug.csr");
+        assert(Asparse.nrows == Adim);
+        assert(Asparse.ncols == Adim);
 
-        assert ( Asparse.nrows == Adim );
-        assert ( Asparse.ncols == Adim );
+        //if (iam == 0) Asparse.writeToFile("A_debug.csr"); exit(-1234);
 	
 
-        if (argc == 7) // if the name of the output file for C is given as parameter
+        if (argc == 7)        // if the name of the output file for C is given as parameter
         {
             filenameC = new char[250];
-            strcpy(filenameC, argv[6]);
+            //strcpy(filenameC, argv[6]);
+            sprintf(filenameC, "/scratch/daint/verbof/sparsedense/C_%d_%d.csr", Adim, Ddim);
 
             CSRdouble Dmat, Dblock, Csparse, Bblock;
             Dblock.nrows=Dblocks * blocksize;
@@ -368,8 +390,16 @@ int main ( int argc, char **argv ) {
                 Btsparse.clear();
                 Dmat.clear();
 		
-                Csparse.fillSymmetric();
-                Csparse.writeToFilePSelInv(filenameC);
+
+
+                ParDiSO p(-2,0);
+
+                p.init(Csparse, 1);
+                p.factorize(Csparse);
+
+                //Csparse.fillSymmetric();
+                //Csparse.writeToFilePSelInv(filenameC);
+                //Csparse.writeToFile(filenameC);
                 Csparse.clear();
 
                 //double* Cdense = new double[Csparse.nrows * Csparse.ncols];
@@ -379,6 +409,12 @@ int main ( int argc, char **argv ) {
                 if ( filenameC != NULL )
                     free ( filenameC );
                 filenameC=NULL;
+            }
+
+            if (iam == 0)
+            {
+                cout << "\n - C saved in file " << filenameC << "! Exiting... \n\n" << endl; 
+                exit(-12345);
             }
         }
 

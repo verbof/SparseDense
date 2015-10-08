@@ -216,6 +216,7 @@ void ParDiSO::init(CSRdouble& A, int number_of_rhs)
 
   if (error != 0) 
   {
+    printf("\nPARDISOCHECK_D says: ");
     printf("\nERROR in consistency of matrix: %d", error);
     exit(1);
   }
