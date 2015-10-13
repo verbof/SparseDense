@@ -695,9 +695,6 @@ int main ( int argc, char **argv ) {
             watch.tack ( totaltime );
 
 
-
-            cout << "Extracting diagonal... \n" << endl;
-
             /*
             //cout << "Extraction completed by ";
             for (i = 0; i < Ddim; i++)
@@ -710,8 +707,11 @@ int main ( int argc, char **argv ) {
             cout << endl;
             */
 
+
             Asparse.clear();
 
+            /*
+            cout << "Extracting diagonal... \n" << endl;
             cout << "Saving diagonal... \n" << endl;
 
             char* diagOutFile = new char[50];
@@ -720,6 +720,7 @@ int main ( int argc, char **argv ) {
             printdense ( Adim+Ddim, 1, InvD_T_Block, diagOutFile );
 
             delete[] diagOutFile;
+            */
         }
 
         if ( InvD_T_Block !=NULL ) {
