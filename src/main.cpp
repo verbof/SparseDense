@@ -249,7 +249,7 @@ int main ( int argc, char **argv ) {
                 printf ( "unable to allocate memory for Matrix D  (required: %ld bytes)\n", Drows * blocksize * Dcols * blocksize * sizeof ( double ) );
                 return EXIT_FAILURE;
             }
-            perm = ( int* ) calloc ( Drows + blocksize ,sizeof ( int ) );
+            perm = ( int* ) calloc ( Drows*blocksize + blocksize ,sizeof ( int ) );
             if ( D==NULL ) {
                 printf ( "unable to allocate memory for Matrix D  (required: %ld bytes)\n", (Drows + blocksize) * sizeof ( int ) );
                 return EXIT_FAILURE;
