@@ -80,8 +80,8 @@ timing watch;
 
 int main ( int argc, char **argv ) {
     int info, i, j, pcol;
-
     int *DESCD, *DESCAB_sol, *DESCXSROW;
+    bool readAFromFile = false;
     //CSRdouble BT_i, B_j;
     int s_BT_i = 0;
     int s_B_j  = 0;              // size of BT_i (#rows) and B_j (#cols)
@@ -90,22 +90,41 @@ int main ( int argc, char **argv ) {
 
     // needed args: nx, ny, nz, Ddim, blocksize;
     // optional: C.csr - if provided, the output file is written.
+
     if (argc < 7)
     {
         cout << "Too few arguments." << endl;
-        cout << "Usage: " << argv[0] << " nx ny nz Ddim blocksize complex C.csr" << endl;
+        cout << "Usage: " << argv[0] << " nx ny nz Ddim blocksize complex [C.csr]" << endl;
+        cout << "Usage: " << argv[0] << " -fileA filename Adim Ddim blocksize complex [C.csr]" << endl;
+        cout << " NOTE: option -fileA not avaible for the complex case. \n" << endl;
         exit(-1);
     }
 
+    if (strcmp(argv[1], "-fileA") == 0)   // if (argv[1] == "-fileA")
+    {
+        readAFromFile = true;
 
-    /*  what to do with input args...
-        Adim      = atoi(argv[1])*atoi(argv[2])*atoi(argv[3]);
-        Ddim      = atoi(argv[4]);
-        blocksize = atoi(argv[5]);
-    */
+        filenameA = new char[250];
+        strcpy(filenameA, argv[2]);
+
+        Adim = atoi(argv[3]);
+        
+    }
+    else
+    {
+        nx   = atoi(argv[1]);
+        ny   = atoi(argv[2]);
+        nz   = atoi(argv[3]);
+        Adim = nx * ny * nz;
+    }
+
+    Ddim         = atoi(argv[4]);
+    blocksize    = atoi(argv[5]);
+	complex_bool = atoi(argv[6]);
 
     //printf("Adim=%d, Ddim=%d, blocksize=%d *** %s", Adim, Ddim, blocksize, outputc);
     //exit(-123);
+
 
     //Initialise MPI and some MPI-variables
     info = MPI_Init ( &argc, &argv );
@@ -163,16 +182,6 @@ int main ( int argc, char **argv ) {
             printf ( "Error in proces grid\n" );
             return -1;
         }
-
-
-        nx        = atoi(argv[1]);
-        ny        = atoi(argv[2]);
-        nz        = atoi(argv[3]);
-        Adim      = nx*ny*nz;
-        Ddim      = atoi(argv[4]);
-        blocksize = atoi(argv[5]);
-	complex_bool=atoi(argv[6]);
-	
 
         /*
         //Filenames, dimensions of all matrices and other important variables are read in as global variables (see src/readinput.cpp)
@@ -275,14 +284,21 @@ int main ( int argc, char **argv ) {
             //makeRandCSRUpper(Adim, 0.001, Asparse);
             //cout << "nnz(A) = " << Asparse.nonzeros << endl;
             //Asparse.loadFromFileSym("/users/drosos/simple/matrices/NornePrimaryJacobian.csr");
-
-            make3DLaplace(nx, ny, nz, Asparse);
-            cout << "A is Laplacian" << endl;
-            //Asparse.reduceSymmetric();
-            shiftIndices ( Asparse, -1 );
+    
+            if (readAFromFile)
+            {
+                Asparse.loadFromFile(filenameA);
+                cout << "A loaded from file" << endl;
+                //Asparse.reduceSymmetric();
+            }
+            else
+            {
+                make3DLaplace(nx, ny, nz, Asparse);
+                cout << "A is Laplacian" << endl;
+                shiftIndices(Asparse, -1);
+            }
             cout << "- A generated." << endl;
             Asparse.matrixType = SYMMETRIC;
-	    Asparse.writeToFile("A_real.csr");
 
             // if (iam == 0) Asparse.writeToFile("A_debug.csr");
 
@@ -293,7 +309,8 @@ int main ( int argc, char **argv ) {
             if (argc == 8) // if the name of the output file for C is given as parameter
             {
                 filenameC = new char[250];
-                strcpy(filenameC, argv[7]);
+                //strcpy(filenameC, argv[7]);
+                sprintf(filenameC, "/scratch/daint/verbof/sparsedense/C_%d_%d.csr", Adim, Ddim);
 
                 CSRdouble Dmat, Dblock, Csparse, Bblock;
                 Dblock.nrows=Dblocks * blocksize;
@@ -409,8 +426,8 @@ int main ( int argc, char **argv ) {
                     Btsparse.clear();
                     Dmat.clear();
 
-                    Csparse.fillSymmetric();
-                    Csparse.writeToFilePSelInv(filenameC);
+                    //Csparse.fillSymmetric();
+                    //Csparse.writeToFilePSelInv(filenameC);
                     Csparse.clear();
 
                     //double* Cdense = new double[Csparse.nrows * Csparse.ncols];
@@ -421,6 +438,15 @@ int main ( int argc, char **argv ) {
                         free ( filenameC );
                     filenameC=NULL;
                 }
+
+
+                if (iam == 0)
+                {
+                    cout << "\n - C saved in file " << filenameC << "! Exiting... \n\n" << endl; 
+                    exit(-12345);
+                }
+
+
             }
 
             blacs_barrier_ ( &ICTXT2D,"A" );
@@ -754,7 +780,7 @@ int main ( int argc, char **argv ) {
             CSRcomplex Asparse, Btsparse;
             pardiso_var.Initial(6,0);
 	    
-	    cout << "Dimension of complex A and D: " << Adim << " & " << Ddim << endl;
+	        cout << "Dimension of complex A and D: " << Adim << " & " << Ddim << endl;
 
             //Allocate the space necessary to store the part of D that is held into memory of this process.
             D = new complex< double > [Drows * blocksize * Dcols * blocksize];
@@ -783,22 +809,22 @@ int main ( int argc, char **argv ) {
             //Asparse.loadFromFileSym("/users/drosos/simple/matrices/NornePrimaryJacobian.csr");
 
             make3DLaplace_complex ( nx, ny, nz, Asparse, 0.0 );
-	    Asparse.writeToFile("A_noshift.csr");
+	        Asparse.writeToFile("A_noshift.csr");
             cout << "A is a complex Laplacian" << endl;
             //Asparse.reduceSymmetric();
             shiftIndicesComplex ( Asparse, -1 );
             cout << "- A generated." << endl;
             Asparse.matrixType = SYMMETRIC;
-	    Asparse.writeToFile("A_complex.csr");
+	        Asparse.writeToFile("A_complex.csr");
 
             // if (iam == 0) Asparse.writeToFile("A_debug.csr");
 	    
-	    cout << "Assertions" << endl;
+	        cout << "Assertions" << endl;
 
             assert ( Asparse.nrows == Adim );
             assert ( Asparse.ncols == Adim );
 	    
-	    cout << "Assertions succeeded" << endl;
+	        cout << "Assertions succeeded" << endl;
 
 
             if (argc == 8) // if the name of the output file for C is given as parameter

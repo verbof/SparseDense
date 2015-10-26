@@ -22,6 +22,7 @@ CONFIG+=release
 SOURCES+=src/CSRdouble.cpp   \
 	 src/CSRcomplex.cpp  \
 	 src/RealMath.cpp    \
+	 src/ComplexMath.cpp \
 	 src/ParDiSO.cpp     \
 	 src/tools.cpp       \
 	 src/schur.cpp       \
