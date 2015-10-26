@@ -80,8 +80,8 @@ int make_Sij_denseB(CSRdouble& A, double* BT_i, double* B_j, int d_BT_i, int d_B
     dgemm_("N", "N", &d_BT_i, &d_B_j, &A.nrows, &d_negone, BT_i, &d_BT_i,
             AB_sol_out, &A.nrows, &d_one, T_ij, &lld_T); 
     
-    printdense(Ddim,Adim,AB_sol_out,"AB_real.txt");
-    printdense(Ddim,Adim,B_j,"B_j_real.txt");
+    //printdense(Ddim,Adim,AB_sol_out,"AB_real.txt");
+    //printdense(Ddim,Adim,B_j,"B_j_real.txt");
 
     secs.tack(MultTime);
 
@@ -110,8 +110,8 @@ int make_Sij_denseB_complex(CSRcomplex& A, complex< double >* BT_i, complex< dou
     
     cout << "system solved on process " << iam << endl;
     
-    printdense_complex(Ddim,Adim,B_j,"B_j_comp.txt");
-    printdense_complex(Ddim,Adim,AB_sol_out,"AB_comp.txt");
+    //printdense_complex(Ddim,Adim,B_j,"B_j_comp.txt");
+    //printdense_complex(Ddim,Adim,AB_sol_out,"AB_comp.txt");
 
     //printf("Processor %d finished solving system AX=B\n",iam);
 
